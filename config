@@ -1,0 +1,21 @@
+ngx_module_type=HTTP
+ngx_module_name=ngx_http_wasm_module
+ngx_module_srcs=" \
+    $ngx_addon_dir/src/http/ngx_http_wasm_module.c \
+    $ngx_addon_dir/src/vm/wasmtime.c \
+    $ngx_addon_dir/src/vm/vm.c \
+"
+ngx_module_deps=" \
+    $ngx_addon_dir/src/vm/vm.h \
+"
+ngx_module_incs=" \
+    $ngx_addon_dir/src \
+    $ngx_addon_dir/wasmtime-c-api/include \
+"
+ngx_module_libs=" \
+    -L$ngx_addon_dir/wasmtime-c-api/lib -lwasmtime \
+"
+
+. auto/module
+
+ngx_addon_name=$ngx_module_name
