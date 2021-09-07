@@ -1,3 +1,4 @@
 .ccls
 wasmtime-*-c-api
 wasmtime-c-api
+*.wasm
