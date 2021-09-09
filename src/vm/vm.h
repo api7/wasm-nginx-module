@@ -10,6 +10,9 @@ typedef struct {
 
     ngx_int_t            (*init)(void);
     void                 (*cleanup)(void);
+
+    void            *(*load)(const char *bytecode, size_t size);
+    void             (*unload)(void *plugin);
 } ngx_wasm_vm_t;
 
 

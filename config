@@ -2,6 +2,7 @@ ngx_module_type=HTTP
 ngx_module_name=ngx_http_wasm_module
 ngx_module_srcs=" \
     $ngx_addon_dir/src/http/ngx_http_wasm_module.c \
+    $ngx_addon_dir/src/http/ngx_http_wasm_api.c \
     $ngx_addon_dir/src/vm/wasmtime.c \
     $ngx_addon_dir/src/vm/vm.c \
 "

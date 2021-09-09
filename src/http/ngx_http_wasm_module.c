@@ -64,3 +64,17 @@ ngx_http_wasm_init(ngx_conf_t *cf)
 
     return NGX_OK;
 }
+
+
+void *
+ngx_http_load_plugin(const char *bytecode, size_t size)
+{
+    return ngx_wasm_vm.load(bytecode, size);
+}
+
+
+void
+ngx_http_unload_plugin(void *plugin)
+{
+    ngx_wasm_vm.unload(plugin);
+}
