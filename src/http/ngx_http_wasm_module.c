@@ -5,6 +5,9 @@
 
 
 static ngx_int_t ngx_http_wasm_init(ngx_conf_t *cf);
+static ngx_str_t plugin_start = ngx_string("_start");
+static ngx_str_t proxy_on_context_create = ngx_string("proxy_on_context_create");
+static ngx_str_t proxy_on_configure = ngx_string("proxy_on_configure");
 
 
 static ngx_http_module_t ngx_http_wasm_module_ctx = {
@@ -77,4 +80,27 @@ void
 ngx_http_unload_plugin(void *plugin)
 {
     ngx_wasm_vm.unload(plugin);
+}
+
+
+ngx_int_t
+ngx_http_on_configure(void *plugin, const char *conf, size_t size)
+{
+    ngx_int_t           rc;
+
+    rc = ngx_wasm_vm.call(plugin, &plugin_start, false,
+                          NGX_WASM_PARAM_VOID);
+    if (rc != NGX_OK) {
+        return rc;
+    }
+    uint32_t plugin_ctx_id = 1;
+    rc = ngx_wasm_vm.call(plugin, &proxy_on_context_create, false,
+                          NGX_WASM_PARAM_I32_I32, plugin_ctx_id, 0);
+    if (rc != NGX_OK) {
+        return rc;
+    }
+
+    rc = ngx_wasm_vm.call(plugin, &proxy_on_configure, true,
+                          NGX_WASM_PARAM_I32_I32, plugin_ctx_id, size);
+    return rc;
 }

@@ -35,7 +35,7 @@ typedef struct {
 } ngx_wasm_host_api_t;
 
 
-ngx_wasm_host_api_t host_apis[] = {
+static ngx_wasm_host_api_t host_apis[] = {
   { ngx_string("proxy_set_effective_context"),
     proxy_set_effective_context,
     WASM_I32,

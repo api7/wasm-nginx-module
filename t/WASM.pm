@@ -30,6 +30,12 @@ add_block_preprocessor(sub {
 _EOC_
 
     $block->set_value("http_config", $http_config);
+
+    my $main_config = $block->main_config // '';
+    $main_config .= <<_EOC_;
+env WASMTIME_BACKTRACE_DETAILS=1;
+_EOC_
+    $block->set_value("main_config", $main_config);
 });
 
 1;

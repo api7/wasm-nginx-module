@@ -1,7 +1,9 @@
 package main
 
 import (
+	"log"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm"
@@ -32,9 +34,30 @@ type pluginLifecycle struct {
 	contextID uint32
 }
 
+func writeFile(name string, data []byte, perm os.FileMode) error {
+	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(data)
+	if err1 := f.Close(); err1 != nil && err == nil {
+		err = err1
+	}
+	return err
+}
+
 // Override types.DefaultPluginContext.
 func (ctx *pluginLifecycle) OnPluginStart(pluginConfigurationSize int) types.OnPluginStartStatus {
 	rand.Seed(time.Now().UnixNano())
 
+	// the HTTP support is TODO yet in tinygo: https://github.com/tinygo-org/tinygo/issues/1961
+	//_, err := http.Get("http://www.baidu.com/robots.txt")
+
+	err := writeFile("/tmp/x", []byte("Hello, World"), 0666)
+	if err != nil {
+		// should be ENOTCAPABLE in wasm's sandbox environment. For details, see:
+		// https://github.com/bytecodealliance/wasmtime/blob/main/docs/WASI-tutorial.md#executing-in-wasmtime-runtime
+		log.Printf("writeFile failed\n")
+	}
 	return types.OnPluginStartStatusOK
 }
