@@ -1,1 +1,1 @@
-We take the some examples from https://github.com/tetratelabs/proxy-wasm-go-sdk as the test data.
+Test data writtern in Go should be compiled with https://github.com/tetratelabs/proxy-wasm-go-sdk.

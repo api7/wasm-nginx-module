@@ -1,0 +1,45 @@
+#ifndef NGX_HTTP_WASM_TYPES_H
+#define NGX_HTTP_WASM_TYPES_H
+
+
+typedef enum {
+    PROXY_RESULT_OK = 0,
+    // The result could not be found, e.g. a provided key did not appear in a
+    // table.
+    PROXY_RESULT_NOT_FOUND = 1,
+    // An argument was bad, e.g. did not not conform to the required range.
+    PROXY_RESULT_BAD_ARGUMENT = 2,
+    // A protobuf could not be serialized.
+    PROXY_RESULT_SERIALIZATIONF_AILURE = 3,
+    // A protobuf could not be parsed.
+    PROXY_RESULT_PARSE_FAILURE = 4,
+    // A provided expression (e.g. "foo.bar") was illegal or unrecognized.
+    PROXY_RESULT_BAD_EXPRESSION = 5,
+    // A provided memory range was not legal.
+    PROXY_RESULT_INVALID_MEMORY_ACCESS = 6,
+    // Data was requested from an empty container.
+    PROXY_RESULT_EMPTY = 7,
+    // The provided CAS did not match that of the stored data.
+    PROXY_RESULT_CAS_MISMATCH = 8,
+    // Returned result was unexpected, e.g. of the incorrect size.
+    PROXY_RESULT_RESULT_MISMATCH = 9,
+    // Internal failure: trying check logs of the surrounding system.
+    PROXY_RESULT_INTERNAL_FAILURE = 10,
+    // The connection/stream/pipe was broken/closed unexpectedly.
+    PROXY_RESULT_BROKEN_CONNECTION = 11,
+    // Feature not implemented.
+    PROXY_RESULT_UNIMPLEMENTED = 12,
+} proxy_result_t;
+
+
+typedef enum {
+  PROXY_LOG_TRACE,
+  PROXY_LOG_DEBUG,
+  PROXY_LOG_INFO,
+  PROXY_LOG_WARN,
+  PROXY_LOG_ERROR,
+  PROXY_LOG_CRITICAL,
+} proxy_log_level_t;
+
+
+#endif // NGX_HTTP_WASM_TYPES_H

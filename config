@@ -8,6 +8,7 @@ ngx_module_srcs=" \
 "
 ngx_module_deps=" \
     $ngx_addon_dir/src/vm/vm.h \
+    $ngx_addon_dir/src/http/ngx_http_wasm_api.h \
 "
 ngx_module_incs=" \
     $ngx_addon_dir/src \

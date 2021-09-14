@@ -59,5 +59,6 @@ func (ctx *pluginLifecycle) OnPluginStart(pluginConfigurationSize int) types.OnP
 		// https://github.com/bytecodealliance/wasmtime/blob/main/docs/WASI-tutorial.md#executing-in-wasmtime-runtime
 		log.Printf("writeFile failed\n")
 	}
+
 	return types.OnPluginStartStatusOK
 }

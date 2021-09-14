@@ -35,6 +35,7 @@ function _M.load(path, conf)
 
     ffi_gc(plugin, C.ngx_http_unload_plugin)
 
+    conf = conf or ""
     local rc = C.ngx_http_on_configure(plugin, conf, #conf)
     if rc < 0 then
         return nil, "failed to run proxy_on_configure, rc: " .. tonumber(rc)

@@ -19,6 +19,8 @@ typedef struct {
     void            *(*load)(const char *bytecode, size_t size);
     void             (*unload)(void *plugin);
 
+    const u_char    *(*get_memory)(ngx_log_t *log, int32_t addr, int32_t size);
+
     ngx_int_t        (*call)(void *plugin, ngx_str_t *name, bool has_result,
                              int param_type, ...);
 } ngx_wasm_vm_t;

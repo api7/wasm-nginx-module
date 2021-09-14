@@ -11,12 +11,14 @@ typedef struct {
     wasmtime_context_t      *context;
     wasmtime_linker_t       *linker;
     wasmtime_instance_t      instance;
+    wasmtime_memory_t        memory;
 } ngx_wasm_wasmtime_plugin_t;
 
 
 static ngx_str_t      vm_name = ngx_string("wasmtime");
 static wasm_engine_t *vm_engine;
 static wasmtime_val_t   param_int32_int32[2] = {{ .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 }};
+static ngx_wasm_wasmtime_plugin_t *cur_plugin;
 
 
 static void
@@ -68,7 +70,7 @@ ngx_wasm_wasmtime_cleanup(void)
 static void *
 ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
 {
-    int                           i;
+    size_t                        i;
     wasm_trap_t                  *trap = NULL;
     wasmtime_module_t            *module;
     wasmtime_store_t             *store;
@@ -104,12 +106,12 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
     error = wasmtime_context_set_wasi(context, wasi_config);
     if (error != NULL) {
         ngx_wasm_wasmtime_report_error(ngx_cycle->log, "failed to init WASI: ", error, NULL);
-        goto free_config;
+        goto free_store;
     }
 
     wasmtime_linker_t *linker = wasmtime_linker_new(vm_engine);
     if (linker == NULL) {
-        goto free_config;
+        goto free_store;
     }
 
     error = wasmtime_linker_define_wasi(linker);
@@ -149,6 +151,16 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
         goto free_linker;
     }
 
+    wasmtime_extern_t item;
+    bool ok;
+    ok = wasmtime_instance_export_get(context, &plugin->instance, "memory", strlen("memory"), &item);
+    if (!ok || item.kind != WASMTIME_EXTERN_MEMORY) {
+        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "the wasm plugin doesn't export memory");
+        goto free_linker;
+    }
+    plugin->memory = item.of.memory;
+
+
     plugin->module = module;
     plugin->store = store;
     plugin->context = context;
@@ -160,9 +172,6 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
 
 free_linker:
     wasmtime_linker_delete(linker);
-
-free_config:
-    wasi_config_delete(wasi_config);
 
 free_store:
     wasmtime_store_delete(store);
@@ -213,6 +222,8 @@ ngx_wasm_wasmtime_call(void *data, ngx_str_t *name, bool has_result, int param_t
         return NGX_OK;
     }
 
+    cur_plugin = plugin;
+
     va_start(args, param_type);
 
     switch (param_type) {
@@ -258,11 +269,28 @@ ngx_wasm_wasmtime_call(void *data, ngx_str_t *name, bool has_result, int param_t
 }
 
 
+const u_char *
+ngx_wasm_wasmtime_get_memory(ngx_log_t *log, int32_t addr, int32_t size)
+{
+    size_t bound;
+
+    bound = wasmtime_memory_data_size(cur_plugin->context, &cur_plugin->memory);
+    if (bound < (size_t) (addr + size)) {
+        ngx_log_error(NGX_LOG_ERR, log, 0,
+                      "access memory addr %d with size %d, but the max addr is %z",
+                      addr, size, bound);
+        return NULL;
+    }
+
+    return wasmtime_memory_data(cur_plugin->context, &cur_plugin->memory) + addr;
+}
+
 ngx_wasm_vm_t ngx_wasm_vm = {
     &vm_name,
     ngx_wasm_wasmtime_init,
     ngx_wasm_wasmtime_cleanup,
     ngx_wasm_wasmtime_load,
     ngx_wasm_wasmtime_unload,
+    ngx_wasm_wasmtime_get_memory,
     ngx_wasm_wasmtime_call,
 };

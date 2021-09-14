@@ -16,3 +16,16 @@ location /t {
 qr/writeFile failed/
 --- grep_error_log_out
 writeFile failed
+
+
+
+=== TEST 2: load repeatedly
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.wasm")
+        for i = 1, 3 do
+            assert(wasm.load("t/testdata/plugin_lifecycle/main.go.wasm", '{"body":512}'))
+        end
+    }
+}

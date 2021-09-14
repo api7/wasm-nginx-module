@@ -14,15 +14,9 @@ ngx_http_wasm_host_api_func(const ngx_wasm_host_api_t *api)
         param[i] = wasm_valtype_new(api->param_type[i]);
     }
 
-    if (api->ret_type == WASM_VOID) {
-        wasm_valtype_vec_new(&param_vec, api->param_num, param);
-        wasm_valtype_vec_new_empty(&result_vec);
-
-    } else {
-        result[0] = wasm_valtype_new(api->ret_type);
-        wasm_valtype_vec_new(&param_vec, api->param_num, param);
-        wasm_valtype_vec_new(&result_vec, 1, result);
-    }
+    result[0] = wasm_valtype_new(WASM_I32);
+    wasm_valtype_vec_new(&param_vec, api->param_num, param);
+    wasm_valtype_vec_new(&result_vec, 1, result);
 
     f = wasm_functype_new(&param_vec, &result_vec);
 
@@ -30,9 +24,7 @@ ngx_http_wasm_host_api_func(const ngx_wasm_host_api_t *api)
         wasm_valtype_delete(param[i]);
     }
 
-    if (api->ret_type != WASM_VOID) {
-        wasm_valtype_delete(result[0]);
-    }
+    wasm_valtype_delete(result[0]);
 
     return f;
 }
