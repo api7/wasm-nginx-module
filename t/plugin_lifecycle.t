@@ -8,7 +8,7 @@ __DATA__
 --- config
 location /t {
     content_by_lua_block {
-        local wasm = require("resty.wasm")
+        local wasm = require("resty.proxy-wasm")
         assert(wasm.load("t/testdata/plugin_lifecycle/main.go.wasm", '{"body":512}'))
     }
 }
@@ -23,7 +23,7 @@ writeFile failed
 --- config
 location /t {
     content_by_lua_block {
-        local wasm = require("resty.wasm")
+        local wasm = require("resty.proxy-wasm")
         for i = 1, 3 do
             assert(wasm.load("t/testdata/plugin_lifecycle/main.go.wasm", '{"body":512}'))
         end

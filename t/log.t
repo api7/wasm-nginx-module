@@ -9,7 +9,7 @@ __DATA__
 --- config
 location /t {
     content_by_lua_block {
-        local wasm = require("resty.wasm")
+        local wasm = require("resty.proxy-wasm")
         assert(wasm.load("t/testdata/log/main.go.wasm"))
     }
 }
