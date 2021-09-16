@@ -24,7 +24,7 @@ type vmContext struct {
 
 // Override types.DefaultVMContext.
 func (*vmContext) NewPluginContext(contextID uint32) types.PluginContext {
-	return &pluginLifecycle{}
+	return &pluginLifecycle{contextID: contextID}
 }
 
 type pluginLifecycle struct {
@@ -60,5 +60,11 @@ func (ctx *pluginLifecycle) OnPluginStart(pluginConfigurationSize int) types.OnP
 		log.Printf("writeFile failed\n")
 	}
 
+	proxywasm.LogWarnf("proxy_on_configure %d", ctx.contextID)
 	return types.OnPluginStartStatusOK
+}
+
+func (ctx *pluginLifecycle) OnPluginDone() bool {
+	proxywasm.LogWarnf("proxy_on_done %d", ctx.contextID)
+	return true
 }

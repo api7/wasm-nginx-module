@@ -7,16 +7,18 @@ local NGX_OK = ngx.OK
 
 ffi.cdef[[
 typedef long ngx_int_t;
-void *ngx_http_load_plugin(const char *code, size_t size);
-void ngx_http_unload_plugin(void *plugin);
-ngx_int_t ngx_http_on_configure(void *plugin, const char *conf, size_t size);
+void *ngx_http_wasm_load_plugin(const char *code, size_t size);
+void ngx_http_wasm_unload_plugin(void *plugin);
+void *ngx_http_wasm_on_configure(void *plugin, const char *conf, size_t size);
+void ngx_http_wasm_delete_plugin_ctx(void *hwp_ctx);
 ]]
 
 
 local _M = {}
+local PLUGIN = {}
 
 
-function _M.load(path, conf)
+function _M.load(path)
     local f, err = io.open(path)
     if not f then
         return nil, err
@@ -28,20 +30,27 @@ function _M.load(path, conf)
         return nil, err
     end
 
-    local plugin = C.ngx_http_load_plugin(data, #data)
+    local plugin = C.ngx_http_wasm_load_plugin(data, #data)
     if plugin == nil then
         return nil, "failed to load wasm plugin"
     end
 
-    ffi_gc(plugin, C.ngx_http_unload_plugin)
-
-    conf = conf or ""
-    local rc = C.ngx_http_on_configure(plugin, conf, #conf)
-    if rc < 0 then
-        return nil, "failed to run proxy_on_configure, rc: " .. tonumber(rc)
-    end
+    ffi_gc(plugin, C.ngx_http_wasm_unload_plugin)
 
     return plugin
+end
+
+
+function _M.on_configure(plugin, conf)
+    conf = conf or ""
+    local plugin_ctx = C.ngx_http_wasm_on_configure(plugin, conf, #conf)
+    if plugin_ctx == nil then
+        return nil, "failed to run proxy_on_configure"
+    end
+
+    ffi_gc(plugin_ctx, C.ngx_http_wasm_delete_plugin_ctx)
+
+    return plugin_ctx
 end
 
 

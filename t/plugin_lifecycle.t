@@ -9,13 +9,9 @@ __DATA__
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        assert(wasm.load("t/testdata/plugin_lifecycle/main.go.wasm", '{"body":512}'))
+        assert(wasm.load("t/testdata/plugin_lifecycle/main.go.wasm"))
     }
 }
---- grep_error_log eval
-qr/writeFile failed/
---- grep_error_log_out
-writeFile failed
 
 
 
@@ -25,7 +21,153 @@ location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
         for i = 1, 3 do
-            assert(wasm.load("t/testdata/plugin_lifecycle/main.go.wasm", '{"body":512}'))
+            assert(wasm.load("t/testdata/plugin_lifecycle/main.go.wasm"))
         end
     }
 }
+
+
+
+=== TEST 3: on_configure
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+        assert(wasm.on_configure(plugin, '{"body":512}'))
+    }
+}
+--- grep_error_log eval
+qr/writeFile failed/
+--- grep_error_log_out
+writeFile failed
+
+
+
+=== TEST 4: on_configure, repeatedly
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+        local manager = {
+            plugin = plugin,
+            ctxs = {}
+        }
+        for i = 1, 3 do
+            local ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
+            table.insert(manager.ctxs, ctx)
+        end
+    }
+}
+--- grep_error_log eval
+qr/proxy_on_configure \d+/
+--- grep_error_log_out eval
+qr/proxy_on_configure 1
+proxy_on_configure 2
+proxy_on_configure 3
+/
+--- shutdown_error_log eval
+qr/proxy_on_done [123]/
+
+
+
+=== TEST 5: reuse plugin ctx id
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+        local ref
+        for i = 1, 2 do
+            do
+                for j = 1, 2 do
+                    local ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
+                end
+                if i == 1 then
+                    ref = assert(wasm.on_configure(plugin, '{"body":512}'))
+                end
+
+                collectgarbage()
+            end
+        end
+    }
+}
+--- grep_error_log eval
+qr/proxy_on_(configure|done) \d+/
+--- grep_error_log_out eval
+qr/proxy_on_configure 1
+proxy_on_configure 2
+proxy_on_configure 3
+proxy_on_done [12]
+proxy_on_done [12]
+proxy_on_configure [12]
+proxy_on_configure [12]
+/
+--- shutdown_error_log
+proxy_on_done 3
+
+
+
+=== TEST 6: free plugin after all ctxs are gone
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local ref
+        do
+            local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+            for i = 1, 2 do
+                local ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
+            end
+            ref = assert(wasm.on_configure(plugin, '{"body":512}'))
+
+            collectgarbage()
+        end
+    }
+}
+--- grep_error_log eval
+qr/proxy_on_(configure|done) \d+/
+--- grep_error_log_out eval
+qr/proxy_on_configure 1
+proxy_on_configure 2
+proxy_on_configure 3
+proxy_on_done [12]
+proxy_on_done [12]
+/
+--- shutdown_error_log
+proxy_on_done 3
+unloaded wasm plugin
+
+
+
+=== TEST 7: plugin ctx id counts separately
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        for i = 1, 2 do
+            do
+                local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+                for i = 1, 2 do
+                    local ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
+                end
+            end
+            collectgarbage()
+        end
+    }
+}
+--- grep_error_log eval
+qr/(proxy_on_(configure|done) \d+|unloaded wasm plugin)/
+--- grep_error_log_out eval
+qr/proxy_on_configure 1
+proxy_on_configure 2
+proxy_on_done [12]
+proxy_on_done [12]
+unloaded wasm plugin
+proxy_on_configure 1
+proxy_on_configure 2
+proxy_on_done [12]
+proxy_on_done [12]
+unloaded wasm plugin
+/

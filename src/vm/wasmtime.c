@@ -227,14 +227,20 @@ ngx_wasm_wasmtime_call(void *data, ngx_str_t *name, bool has_result, int param_t
     va_start(args, param_type);
 
     switch (param_type) {
+    case NGX_WASM_PARAM_VOID:
+        break;
+
+    case NGX_WASM_PARAM_I32:
+        params = param_int32_int32;
+        params[0].of.i32 = va_arg(args, int32_t);
+        param_num = 1;
+        break;
+
     case NGX_WASM_PARAM_I32_I32:
         params = param_int32_int32;
         params[0].of.i32 = va_arg(args, int32_t);
         params[1].of.i32 = va_arg(args, int32_t);
         param_num = 2;
-        break;
-
-    case NGX_WASM_PARAM_VOID:
         break;
 
     default:

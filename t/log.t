@@ -10,7 +10,8 @@ __DATA__
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        assert(wasm.load("t/testdata/log/main.go.wasm"))
+        local p = wasm.load("t/testdata/log/main.go.wasm")
+        wasm.on_configure(p)
     }
 }
 --- grep_error_log eval
