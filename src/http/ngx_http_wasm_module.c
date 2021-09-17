@@ -5,6 +5,11 @@
 
 
 static ngx_int_t ngx_http_wasm_init(ngx_conf_t *cf);
+
+
+static bool     ngx_http_wasm_vm_inited = false;
+
+
 static ngx_str_t plugin_start = ngx_string("_start");
 static ngx_str_t proxy_on_context_create = ngx_string("proxy_on_context_create");
 static ngx_str_t proxy_on_configure = ngx_string("proxy_on_configure");
@@ -65,7 +70,7 @@ ngx_http_wasm_init(ngx_conf_t *cf)
     ngx_int_t                   rc;
     ngx_pool_cleanup_t         *cln;
 
-    if (ngx_process == NGX_PROCESS_SIGNALLER || ngx_test_config) {
+    if (ngx_process == NGX_PROCESS_SIGNALLER || ngx_test_config || ngx_http_wasm_vm_inited) {
         return NGX_OK;
     }
 
@@ -82,6 +87,9 @@ ngx_http_wasm_init(ngx_conf_t *cf)
     }
 
     cln->data = &ngx_wasm_vm;
+
+    /* don't reinit during reconfiguring */
+    ngx_http_wasm_vm_inited = true;
 
     return NGX_OK;
 }
