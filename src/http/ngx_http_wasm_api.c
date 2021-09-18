@@ -1,5 +1,10 @@
 #include "vm/vm.h"
 #include "ngx_http_wasm_api.h"
+#include "ngx_http_wasm_state.h"
+
+
+/* convert Word to pointer */
+#define WP(x)  (void *) (int64_t) (x)
 
 
 wasm_functype_t *
@@ -7,7 +12,7 @@ ngx_http_wasm_host_api_func(const ngx_wasm_host_api_t *api)
 {
     int                i;
     wasm_valtype_vec_t param_vec, result_vec;
-    wasm_valtype_t    *param[3];
+    wasm_valtype_t    *param[MAX_WASM_API_ARG];
     wasm_valtype_t    *result[1];
     wasm_functype_t   *f;
 
@@ -77,6 +82,63 @@ proxy_log(int32_t log_level, int32_t addr, int32_t size)
     }
 
     ngx_log_error(host_log_level, ngx_cycle->log, 0, "%*s", size, p);
+
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_get_buffer_bytes(int32_t type, int32_t start, int32_t length,
+                       int32_t addr, int32_t size_addr)
+{
+    ngx_log_t      *log;
+    int32_t         buf_addr;
+    const u_char   *data;
+    int32_t         len;
+    int32_t        *p_size;
+    u_char        **p;
+    u_char         *buf;
+
+    const ngx_str_t      *conf;
+
+    log = ngx_cycle->log;
+
+    switch (type) {
+    case PROXY_BUFFER_TYPE_PLUGIN_CONFIGURATION:
+        conf = ngx_http_wasm_get_conf();
+        data = conf->data;
+        len = conf->len;
+        break;
+
+    default:
+        return PROXY_RESULT_UNIMPLEMENTED;
+    }
+
+    buf_addr = ngx_wasm_vm.malloc(log, len);
+    if (buf_addr == 0) {
+        return PROXY_RESULT_INTERNAL_FAILURE;
+    }
+
+    buf = (u_char *) ngx_wasm_vm.get_memory(log, buf_addr, len);
+    if (buf == NULL) {
+        return PROXY_RESULT_INVALID_MEMORY_ACCESS;
+    }
+
+    ngx_memcpy(buf, data, len);
+
+    p_size = (int32_t *) ngx_wasm_vm.get_memory(log, size_addr, sizeof(int32_t));
+    if (p_size == NULL) {
+        return PROXY_RESULT_INVALID_MEMORY_ACCESS;
+    }
+
+    *p_size = len;
+
+    p = (u_char **) ngx_wasm_vm.get_memory(log, addr, sizeof(int32_t));
+    if (p == NULL) {
+        return PROXY_RESULT_INVALID_MEMORY_ACCESS;
+    }
+
+    *p = WP(buf_addr);
 
     return PROXY_RESULT_OK;
 }

@@ -17,6 +17,7 @@ typedef struct {
 
 static ngx_str_t      vm_name = ngx_string("wasmtime");
 static wasm_engine_t *vm_engine;
+static wasmtime_val_t   param_int32[1] = {{ .kind = WASMTIME_I32 }};
 static wasmtime_val_t   param_int32_int32[2] = {{ .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 }};
 static ngx_wasm_wasmtime_plugin_t *cur_plugin;
 
@@ -62,7 +63,7 @@ ngx_wasm_wasmtime_cleanup(void)
         return;
     }
 
-    ngx_log_error(NGX_LOG_INFO, ngx_cycle->log, 0, "cleanup wasm vm: wasmtime");
+    ngx_log_error(NGX_LOG_NOTICE, ngx_cycle->log, 0, "cleanup wasm vm: wasmtime");
     wasm_engine_delete(vm_engine);
 }
 
@@ -208,7 +209,7 @@ ngx_wasm_wasmtime_call(void *data, ngx_str_t *name, bool has_result, int param_t
     bool                        found;
     va_list                     args;
     wasmtime_val_t             *params = NULL;
-    size_t                      param_num  =0;
+    size_t                      param_num = 0;
     wasmtime_val_t              results[1];
     ngx_int_t                   rc;
 
@@ -231,7 +232,7 @@ ngx_wasm_wasmtime_call(void *data, ngx_str_t *name, bool has_result, int param_t
         break;
 
     case NGX_WASM_PARAM_I32:
-        params = param_int32_int32;
+        params = param_int32;
         params[0].of.i32 = va_arg(args, int32_t);
         param_num = 1;
         break;
@@ -275,7 +276,7 @@ ngx_wasm_wasmtime_call(void *data, ngx_str_t *name, bool has_result, int param_t
 }
 
 
-const u_char *
+u_char *
 ngx_wasm_wasmtime_get_memory(ngx_log_t *log, int32_t addr, int32_t size)
 {
     size_t bound;
@@ -291,6 +292,37 @@ ngx_wasm_wasmtime_get_memory(ngx_log_t *log, int32_t addr, int32_t size)
     return wasmtime_memory_data(cur_plugin->context, &cur_plugin->memory) + addr;
 }
 
+
+int32_t
+ngx_wasm_wasmtime_malloc(ngx_log_t *log, int32_t size)
+{
+    wasmtime_extern_t           func;
+    wasm_trap_t                *trap = NULL;
+    wasmtime_error_t           *error;
+    wasmtime_val_t              params[1];
+    wasmtime_val_t              results[1];
+    bool                        found;
+
+    found = wasmtime_instance_export_get(cur_plugin->context, &cur_plugin->instance,
+                                         "proxy_on_memory_allocate", 24, &func);
+    if (!found) {
+        ngx_log_error(NGX_LOG_ERR, log, 0, "can't find malloc in the WASM plugin");
+        return 0;
+    }
+
+    params[0].kind = WASMTIME_I32;
+    params[0].of.i32 = size;
+
+    error = wasmtime_func_call(cur_plugin->context, &func.of.func, params, 1, results, 1, &trap);
+    if (error != NULL || trap != NULL) {
+        ngx_wasm_wasmtime_report_error(log, "failed to malloc: ", error, trap);
+        return 0;
+    }
+
+    return results[0].of.i64;
+}
+
+
 ngx_wasm_vm_t ngx_wasm_vm = {
     &vm_name,
     ngx_wasm_wasmtime_init,
@@ -298,5 +330,6 @@ ngx_wasm_vm_t ngx_wasm_vm = {
     ngx_wasm_wasmtime_load,
     ngx_wasm_wasmtime_unload,
     ngx_wasm_wasmtime_get_memory,
+    ngx_wasm_wasmtime_malloc,
     ngx_wasm_wasmtime_call,
 };

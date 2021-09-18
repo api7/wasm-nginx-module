@@ -42,6 +42,10 @@ end
 
 
 function _M.on_configure(plugin, conf)
+    if type(plugin) ~= "cdata" then
+        return nil, "bad plugin"
+    end
+
     conf = conf or ""
     local plugin_ctx = C.ngx_http_wasm_on_configure(plugin, conf, #conf)
     if plugin_ctx == nil then
