@@ -20,7 +20,16 @@ typedef struct {
     void            *(*load)(const char *bytecode, size_t size);
     void             (*unload)(void *plugin);
 
-    const u_char    *(*get_memory)(ngx_log_t *log, int32_t addr, int32_t size);
+    /*
+     * get_memory returns a pointer to the given address in WASM.
+     * It returns NULL if addr + size is out of bound.
+     */
+    u_char          *(*get_memory)(ngx_log_t *log, int32_t addr, int32_t size);
+    /*
+     * malloc allocates memory in WASM, and then return the address of the allocated
+     * memory.
+     */
+    int32_t          (*malloc)(ngx_log_t *log, int32_t size);
 
     ngx_int_t        (*call)(void *plugin, ngx_str_t *name, bool has_result,
                              int param_type, ...);

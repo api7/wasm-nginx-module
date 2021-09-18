@@ -1,6 +1,7 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
+#include "ngx_http_wasm_state.h"
 #include "vm/vm.h"
 
 
@@ -28,7 +29,9 @@ typedef struct {
 
 typedef struct {
     uint32_t                    id;
+    ngx_http_wasm_state_t      *state;
     ngx_http_wasm_plugin_t     *hw_plugin;
+    ngx_pool_t                 *pool;
     ngx_queue_t                 queue;
 } ngx_http_wasm_plugin_ctx_t;
 
@@ -165,61 +168,6 @@ ngx_http_wasm_unload_plugin(ngx_http_wasm_plugin_t *hw_plugin)
 }
 
 
-void *
-ngx_http_wasm_on_configure(ngx_http_wasm_plugin_t *hw_plugin, const char *conf, size_t size)
-{
-    ngx_int_t                        rc;
-    void                            *plugin = hw_plugin->plugin;
-    uint32_t                         ctx_id;
-    ngx_log_t                       *log;
-    ngx_http_wasm_plugin_ctx_t      *hwp_ctx;
-
-    log = ngx_cycle->log;
-
-    if (!ngx_queue_empty(&hw_plugin->free)) {
-        ngx_queue_t         *q;
-
-        q = ngx_queue_last(&hw_plugin->free);
-        ngx_queue_remove(q);
-        hwp_ctx = ngx_queue_data(q, ngx_http_wasm_plugin_ctx_t, queue);
-        ctx_id = hwp_ctx->id;
-
-    } else {
-        hwp_ctx = ngx_alloc(sizeof(ngx_http_wasm_plugin_ctx_t), log);
-        if (hwp_ctx == NULL) {
-            return NULL;
-        }
-
-        hw_plugin->cur_ctx_id++;
-        ctx_id = hw_plugin->cur_ctx_id;
-        hwp_ctx->id = ctx_id;
-        hwp_ctx->hw_plugin = hw_plugin;
-    }
-
-    ngx_queue_insert_head(&hw_plugin->occupied, &hwp_ctx->queue);
-
-    rc = ngx_wasm_vm.call(plugin, &proxy_on_context_create, false,
-                          NGX_WASM_PARAM_I32_I32, ctx_id, 0);
-    if (rc != NGX_OK) {
-        ngx_log_error(NGX_LOG_ERR, log, 0, "failed to create context %d, rc: %d",
-                      ctx_id, rc);
-        return NULL;
-    }
-
-    rc = ngx_wasm_vm.call(plugin, &proxy_on_configure, true,
-                          NGX_WASM_PARAM_I32_I32, ctx_id, size);
-    if (rc <= 0) {
-        ngx_log_error(NGX_LOG_ERR, log, 0, "failed to configure plugin context %d, rc: %d",
-                      ctx_id, rc);
-        return NULL;
-    }
-
-    ngx_log_error(NGX_LOG_INFO, ngx_cycle->log, 0, "create plugin context %d", ctx_id);
-
-    return hwp_ctx;
-}
-
-
 void
 ngx_http_wasm_delete_plugin_ctx(ngx_http_wasm_plugin_ctx_t *hwp_ctx)
 {
@@ -247,7 +195,93 @@ ngx_http_wasm_delete_plugin_ctx(ngx_http_wasm_plugin_ctx_t *hwp_ctx)
                       ctx_id, rc);
     }
 
+    if (hwp_ctx->pool != NULL) {
+        ngx_destroy_pool(hwp_ctx->pool);
+        hwp_ctx->pool = NULL;
+    }
+
     if (hw_plugin->done) {
         ngx_http_wasm_free_plugin(hw_plugin);
     }
+}
+
+
+void *
+ngx_http_wasm_on_configure(ngx_http_wasm_plugin_t *hw_plugin, const char *conf, size_t size)
+{
+    ngx_int_t                        rc;
+    void                            *plugin = hw_plugin->plugin;
+    uint32_t                         ctx_id;
+    u_char                          *state_conf;
+    ngx_log_t                       *log;
+    ngx_http_wasm_plugin_ctx_t      *hwp_ctx;
+
+    log = ngx_cycle->log;
+
+    if (!ngx_queue_empty(&hw_plugin->free)) {
+        ngx_queue_t         *q;
+
+        q = ngx_queue_last(&hw_plugin->free);
+        ngx_queue_remove(q);
+        hwp_ctx = ngx_queue_data(q, ngx_http_wasm_plugin_ctx_t, queue);
+        ctx_id = hwp_ctx->id;
+
+    } else {
+        hwp_ctx = ngx_alloc(sizeof(ngx_http_wasm_plugin_ctx_t), log);
+        if (hwp_ctx == NULL) {
+            return NULL;
+        }
+
+        hw_plugin->cur_ctx_id++;
+        ctx_id = hw_plugin->cur_ctx_id;
+        hwp_ctx->id = ctx_id;
+        hwp_ctx->hw_plugin = hw_plugin;
+    }
+
+    rc = ngx_wasm_vm.call(plugin, &proxy_on_context_create, false,
+                          NGX_WASM_PARAM_I32_I32, ctx_id, 0);
+    if (rc != NGX_OK) {
+        ngx_log_error(NGX_LOG_ERR, log, 0, "failed to create context %d, rc: %d",
+                      ctx_id, rc);
+        /* reuse the ctx_id */
+        ngx_queue_insert_head(&hw_plugin->free, &hwp_ctx->queue);
+        return NULL;
+    }
+
+    ngx_queue_insert_head(&hw_plugin->occupied, &hwp_ctx->queue);
+
+    hwp_ctx->pool = ngx_create_pool(512, log);
+    if (hwp_ctx->pool == NULL) {
+        goto free_hwp_ctx;
+    }
+
+    hwp_ctx->state = ngx_palloc(hwp_ctx->pool, sizeof(ngx_http_wasm_state_t) + size);
+    if (hwp_ctx->state == NULL) {
+        goto free_hwp_ctx;
+    }
+
+    state_conf = (u_char *) (hwp_ctx->state + 1);
+    /* copy conf so we can access it anytime */
+    ngx_memcpy(state_conf, conf, size);
+
+    hwp_ctx->state->conf.data = state_conf;
+    hwp_ctx->state->conf.len = size;
+
+    ngx_http_wasm_set_state(hwp_ctx->state);
+
+    rc = ngx_wasm_vm.call(plugin, &proxy_on_configure, true,
+                          NGX_WASM_PARAM_I32_I32, ctx_id, size);
+    if (rc <= 0) {
+        ngx_log_error(NGX_LOG_ERR, log, 0, "failed to configure plugin context %d, rc: %d",
+                      ctx_id, rc);
+        goto free_hwp_ctx;
+    }
+
+    ngx_log_error(NGX_LOG_INFO, ngx_cycle->log, 0, "create plugin context %d", ctx_id);
+
+    return hwp_ctx;
+
+free_hwp_ctx:
+    ngx_http_wasm_delete_plugin_ctx(hwp_ctx);
+    return NULL;
 }

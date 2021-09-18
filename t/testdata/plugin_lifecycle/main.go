@@ -50,10 +50,18 @@ func writeFile(name string, data []byte, perm os.FileMode) error {
 func (ctx *pluginLifecycle) OnPluginStart(pluginConfigurationSize int) types.OnPluginStartStatus {
 	rand.Seed(time.Now().UnixNano())
 
+	data, err := proxywasm.GetPluginConfiguration()
+	if err != nil {
+		proxywasm.LogCriticalf("error reading plugin configuration: %v", err)
+		return types.OnPluginStartStatusFailed
+	}
+
+	proxywasm.LogInfof("plugin config: %s", string(data))
+
 	// the HTTP support is TODO yet in tinygo: https://github.com/tinygo-org/tinygo/issues/1961
 	//_, err := http.Get("http://www.baidu.com/robots.txt")
 
-	err := writeFile("/tmp/x", []byte("Hello, World"), 0666)
+	err = writeFile("/tmp/x", []byte("Hello, World"), 0666)
 	if err != nil {
 		// should be ENOTCAPABLE in wasm's sandbox environment. For details, see:
 		// https://github.com/bytecodealliance/wasmtime/blob/main/docs/WASI-tutorial.md#executing-in-wasmtime-runtime

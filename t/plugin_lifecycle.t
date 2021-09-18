@@ -41,6 +41,8 @@ location /t {
 qr/writeFile failed/
 --- grep_error_log_out
 writeFile failed
+--- error_log
+plugin config: {"body":512}
 
 
 
