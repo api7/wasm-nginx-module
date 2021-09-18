@@ -186,7 +186,6 @@ ngx_http_wasm_delete_plugin_ctx(ngx_http_wasm_plugin_ctx_t *hwp_ctx)
     if (rc <= 0) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "failed to mark context %d as done, rc: %d",
                       ctx_id, rc);
-        return;
     }
 
     rc = ngx_wasm_vm.call(plugin, &proxy_on_delete, false, NGX_WASM_PARAM_I32, ctx_id);

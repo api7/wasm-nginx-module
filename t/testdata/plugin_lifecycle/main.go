@@ -32,6 +32,7 @@ type pluginLifecycle struct {
 	// so that we don't need to reimplement all the methods.
 	types.DefaultPluginContext
 	contextID uint32
+	action    string
 }
 
 func writeFile(name string, data []byte, perm os.FileMode) error {
@@ -58,6 +59,8 @@ func (ctx *pluginLifecycle) OnPluginStart(pluginConfigurationSize int) types.OnP
 
 	proxywasm.LogInfof("plugin config: %s", string(data))
 
+	ctx.action = string(data)
+
 	// the HTTP support is TODO yet in tinygo: https://github.com/tinygo-org/tinygo/issues/1961
 	//_, err := http.Get("http://www.baidu.com/robots.txt")
 
@@ -74,5 +77,9 @@ func (ctx *pluginLifecycle) OnPluginStart(pluginConfigurationSize int) types.OnP
 
 func (ctx *pluginLifecycle) OnPluginDone() bool {
 	proxywasm.LogWarnf("proxy_on_done %d", ctx.contextID)
+
+	if ctx.action == "failed in proxy_on_done" {
+		return false
+	}
 	return true
 }
