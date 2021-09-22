@@ -173,3 +173,21 @@ proxy_on_done [12]
 proxy_on_done [12]
 unloaded wasm plugin
 /
+
+
+
+=== TEST 8: delete ctx even failed to done
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local ctx
+        do
+            local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+            ctx = assert(wasm.on_configure(plugin, 'failed in proxy_on_done'))
+            collectgarbage()
+        end
+    }
+}
+--- shutdown_error_log
+failed to mark context 1 as done

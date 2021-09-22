@@ -24,6 +24,9 @@ add_block_preprocessor(sub {
         $block->set_value("no_error_log", "[error]\n[alert]");
     }
 
+    my $pat = $block->no_shutdown_error_log // '';
+    $block->set_value("no_shutdown_error_log", "LeakSanitizer: detected memory leaks\n" . $pat);
+
     my $http_config = $block->http_config // '';
     $http_config .= <<_EOC_;
     lua_package_path "lib/?.lua;;";
