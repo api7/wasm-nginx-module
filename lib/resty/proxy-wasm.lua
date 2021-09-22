@@ -1,8 +1,6 @@
 local ffi = require("ffi")
 local ffi_gc = ffi.gc
 local C = ffi.C
-local NGX_ERROR = ngx.ERROR
-local NGX_OK = ngx.OK
 
 
 ffi.cdef[[
@@ -15,7 +13,6 @@ void ngx_http_wasm_delete_plugin_ctx(void *hwp_ctx);
 
 
 local _M = {}
-local PLUGIN = {}
 
 
 function _M.load(path)
