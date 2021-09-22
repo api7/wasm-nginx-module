@@ -1,0 +1,24 @@
+name: lint
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: "ubuntu-18.04"
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Get dependencies
+        run: |
+          sudo apt install -y luarocks
+          sudo luarocks install luacheck > build.log 2>&1 || (cat build.log && exit 1)
+
+      - name: Script
+        run: |
+          luacheck .
