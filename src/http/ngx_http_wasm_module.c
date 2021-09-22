@@ -117,7 +117,7 @@ ngx_http_wasm_load_plugin(const char *bytecode, size_t size)
         goto free_plugin;
     }
 
-    hw_plugin = ngx_alloc(sizeof(ngx_http_wasm_plugin_t), ngx_cycle->log);
+    hw_plugin = ngx_calloc(sizeof(ngx_http_wasm_plugin_t), ngx_cycle->log);
     if (hw_plugin == NULL) {
         goto free_plugin;
     }
@@ -226,7 +226,7 @@ ngx_http_wasm_on_configure(ngx_http_wasm_plugin_t *hw_plugin, const char *conf, 
         ctx_id = hwp_ctx->id;
 
     } else {
-        hwp_ctx = ngx_alloc(sizeof(ngx_http_wasm_plugin_ctx_t), log);
+        hwp_ctx = ngx_calloc(sizeof(ngx_http_wasm_plugin_ctx_t), log);
         if (hwp_ctx == NULL) {
             return NULL;
         }
