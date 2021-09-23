@@ -8,9 +8,8 @@ A Nginx module which tries to implement [proxy wasm ABI](https://github.com/prox
 
 ## Install dependencies
 
-* Download the wasmtime C API package, see https://docs.wasmtime.dev/c-api/.
-Then rename it to `wasmtime-c-api/`. Remember to add the `wasmtime-c-api/lib` to
-the library search path when you build Nginx, for instance,
+* Download the wasmtime C API package and rename it to `wasmtime-c-api/`, with the `./install-wasmtime.sh`.
+Remember to add the `wasmtime-c-api/lib` to the library search path when you build Nginx, for instance,
 
 ```
 export wasm_prefix=/path/to/wasm-nginx-module/wasmtime-c-api
