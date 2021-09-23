@@ -1,6 +1,7 @@
 .ccls
 
 wasmtime-*-c-api
+wasmtime-*-c-api.tar.xz
 wasmtime-c-api
 *.wasm
 
