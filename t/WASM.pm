@@ -30,6 +30,7 @@ add_block_preprocessor(sub {
     my $http_config = $block->http_config // '';
     $http_config .= <<_EOC_;
     lua_package_path "lib/?.lua;;";
+    wasm_vm wasmtime;
 _EOC_
 
     $block->set_value("http_config", $http_config);

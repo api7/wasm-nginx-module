@@ -6,6 +6,9 @@
 
 
 static ngx_int_t ngx_http_wasm_init(ngx_conf_t *cf);
+static void *ngx_http_wasm_create_main_conf(ngx_conf_t *cf);
+static char *ngx_http_wasm_init_main_conf(ngx_conf_t *cf, void *conf);
+static char *ngx_http_wasm_vm(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 
 
 static bool     ngx_http_wasm_vm_inited = false;
@@ -16,6 +19,11 @@ static ngx_str_t proxy_on_context_create = ngx_string("proxy_on_context_create")
 static ngx_str_t proxy_on_configure = ngx_string("proxy_on_configure");
 static ngx_str_t proxy_on_done = ngx_string("proxy_on_done");
 static ngx_str_t proxy_on_delete = ngx_string("proxy_on_delete");
+
+
+typedef struct {
+    ngx_str_t       vm;
+} ngx_http_wasm_main_conf_t;
 
 
 typedef struct {
@@ -36,12 +44,24 @@ typedef struct {
 } ngx_http_wasm_plugin_ctx_t;
 
 
+static ngx_command_t ngx_http_wasm_cmds[] = {
+    { ngx_string("wasm_vm"),
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+      ngx_http_wasm_vm,
+      NGX_HTTP_MAIN_CONF_OFFSET,
+      0,
+      NULL },
+
+    ngx_null_command
+};
+
+
 static ngx_http_module_t ngx_http_wasm_module_ctx = {
     NULL,                                    /* preconfiguration */
     ngx_http_wasm_init,                      /* postconfiguration */
 
-    NULL,                                    /* create main configuration */
-    NULL,                                    /* init main configuration */
+    ngx_http_wasm_create_main_conf,          /* create main configuration */
+    ngx_http_wasm_init_main_conf,            /* init main configuration */
 
     NULL,                                    /* create server configuration */
     NULL,                                    /* merge server configuration */
@@ -54,7 +74,7 @@ static ngx_http_module_t ngx_http_wasm_module_ctx = {
 ngx_module_t ngx_http_wasm_module = {
     NGX_MODULE_V1,
     &ngx_http_wasm_module_ctx,           /* module context */
-    NULL,                                /* module directives */
+    ngx_http_wasm_cmds,                  /* module directives */
     NGX_HTTP_MODULE,                     /* module type */
     NULL,                                /* init master */
     NULL,                                /* init module */
@@ -67,13 +87,68 @@ ngx_module_t ngx_http_wasm_module = {
 };
 
 
+static void *
+ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
+{
+    ngx_http_wasm_main_conf_t    *wmcf;
+
+    wmcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_wasm_main_conf_t));
+    if (wmcf == NULL) {
+        return NULL;
+    }
+
+    /* set by ngx_pcalloc:
+     *      wmcf->vm = { 0, NULL };
+     */
+
+    return wmcf;
+}
+
+
+static char *
+ngx_http_wasm_init_main_conf(ngx_conf_t *cf, void *conf)
+{
+    return NGX_CONF_OK;
+}
+
+
+static char *
+ngx_http_wasm_vm(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_wasm_main_conf_t       *wmcf = conf;
+    ngx_str_t                       *value;
+
+    if (wmcf->vm.len != 0) {
+        return "is duplicate";
+    }
+
+    value = cf->args->elts;
+
+    if (ngx_strcmp(value[1].data, "wasmtime") != 0) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unsupported wasm vm %V", &value[1]);
+        return NGX_CONF_ERROR;
+    }
+
+    wmcf->vm.len = value[1].len;
+    wmcf->vm.data = value[1].data;
+
+    return NGX_CONF_OK;
+}
+
+
 static ngx_int_t
 ngx_http_wasm_init(ngx_conf_t *cf)
 {
     ngx_int_t                   rc;
     ngx_pool_cleanup_t         *cln;
+    ngx_http_wasm_main_conf_t  *wmcf;
 
     if (ngx_process == NGX_PROCESS_SIGNALLER || ngx_test_config || ngx_http_wasm_vm_inited) {
+        return NGX_OK;
+    }
+
+    wmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);
+    if (wmcf->vm.len == 0) {
         return NGX_OK;
     }
 
@@ -104,6 +179,11 @@ ngx_http_wasm_load_plugin(const char *bytecode, size_t size)
     void                    *plugin;
     ngx_int_t                rc;
     ngx_http_wasm_plugin_t  *hw_plugin;
+
+    if (!ngx_http_wasm_vm_inited) {
+        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "miss wasm_vm configuration");
+        return NULL;
+    }
 
     plugin = ngx_wasm_vm.load(bytecode, size);
 
@@ -216,6 +296,11 @@ ngx_http_wasm_on_configure(ngx_http_wasm_plugin_t *hw_plugin, const char *conf, 
     ngx_http_wasm_plugin_ctx_t      *hwp_ctx;
 
     log = ngx_cycle->log;
+
+    if (!ngx_http_wasm_vm_inited) {
+        ngx_log_error(NGX_LOG_ERR, log, 0, "miss wasm_vm configuration");
+        return NULL;
+    }
 
     if (!ngx_queue_empty(&hw_plugin->free)) {
         ngx_queue_t         *q;
