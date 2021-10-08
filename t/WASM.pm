@@ -7,6 +7,7 @@ use Cwd qw(cwd);
 log_level('info');
 no_long_string();
 no_shuffle();
+master_on();
 worker_connections(128);
 
 
