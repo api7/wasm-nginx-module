@@ -28,7 +28,7 @@ export wasm_prefix=/path/to/wasm-nginx-module/wasmtime-c-api
 **context:** *http*
 
 Select the WASM VM. Currently, only wasmtime is supported. If the directive is
-set, the WASM VM won't be enabled.
+not set, the WASM VM won't be enabled.
 
 ## Methods
 
