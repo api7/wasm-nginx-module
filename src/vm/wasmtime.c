@@ -72,6 +72,7 @@ static void *
 ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
 {
     size_t                        i;
+    bool                          ok;
     wasm_trap_t                  *trap = NULL;
     wasmtime_module_t            *module;
     wasmtime_store_t             *store;
@@ -79,8 +80,8 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
     wasi_config_t                *wasi_config;
     wasmtime_error_t             *error;
     ngx_wasm_wasmtime_plugin_t   *plugin;
+    wasmtime_extern_t             item;
 
-    // TODO: separate WASM compiling from the store init
     error = wasmtime_module_new(vm_engine, (const uint8_t*) bytecode, size, &module);
     if (module == NULL) {
         return NULL;
@@ -98,7 +99,6 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
         goto free_store;
     }
 
-    wasi_config_inherit_argv(wasi_config);
     wasi_config_inherit_env(wasi_config);
     wasi_config_inherit_stdin(wasi_config);
     wasi_config_inherit_stdout(wasi_config);
@@ -152,8 +152,6 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
         goto free_linker;
     }
 
-    wasmtime_extern_t item;
-    bool ok;
     ok = wasmtime_instance_export_get(context, &plugin->instance, "memory", strlen("memory"), &item);
     if (!ok || item.kind != WASMTIME_EXTERN_MEMORY) {
         ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "the wasm plugin doesn't export memory");

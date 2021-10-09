@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: "ubuntu-18.04"
+    env:
+      OPENRESTY_PREFIX: "/usr/local/openresty"
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Get dependencies
+        run: |
+          sudo apt install -y cpanminus build-essential libncurses5-dev libreadline-dev libssl-dev perl
+          wget https://github.com/tinygo-org/tinygo/releases/download/v0.19.0/tinygo_0.19.0_amd64.deb
+          sudo dpkg -i tinygo_0.19.0_amd64.deb
+
+      - name: Before install
+        run: |
+          sudo cpanm --notest Test::Nginx > build.log 2>&1 || (cat build.log && exit 1)
+          git clone https://github.com/iresty/test-nginx.git test-nginx
+
+      - name: Install
+        run: |
+          wget https://raw.githubusercontent.com/api7/apisix-build-tools/master/build-apisix-base.sh
+          chmod +x build-apisix-base.sh
+          OR_PREFIX=$OPENRESTY_PREFIX ./build-apisix-base.sh latest
+
+      - name: Script
+        run: |
+          make build.all.testdata
+          export PATH=$OPENRESTY_PREFIX/nginx/sbin:$PATH
+          prove -I. -Itest-nginx/lib -r t/

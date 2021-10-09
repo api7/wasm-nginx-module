@@ -151,7 +151,7 @@ location /t {
         for i = 1, 2 do
             do
                 local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
-                for i = 1, 2 do
+                for j = 1, 2 do
                     local ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
                 end
             end
