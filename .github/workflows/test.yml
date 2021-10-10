@@ -19,8 +19,8 @@ jobs:
       - name: Get dependencies
         run: |
           sudo apt install -y cpanminus build-essential libncurses5-dev libreadline-dev libssl-dev perl
-          wget https://github.com/tinygo-org/tinygo/releases/download/v0.19.0/tinygo_0.19.0_amd64.deb
-          sudo dpkg -i tinygo_0.19.0_amd64.deb
+          wget https://github.com/tinygo-org/tinygo/releases/download/v0.20.0/tinygo_0.20.0_amd64.deb
+          sudo dpkg -i tinygo_0.20.0_amd64.deb
 
       - name: Before install
         run: |
