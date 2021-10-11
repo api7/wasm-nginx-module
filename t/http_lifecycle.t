@@ -89,3 +89,44 @@ location /hit {
 --- grep_error_log eval
 qr/free http context (1|11)$/
 --- grep_error_log_out
+
+
+
+=== TEST 4: multi plugin ctx in same req
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("t/testdata/http_lifecycle/main.go.wasm"))
+        local ctx1 = assert(wasm.on_configure(plugin, '{"body":512}'))
+        local ctx2 = assert(wasm.on_configure(plugin, '{"body":256}'))
+        assert(wasm.on_http_request_headers(ctx1))
+        assert(wasm.on_http_request_headers(ctx2))
+    }
+}
+--- grep_error_log eval
+qr/run http ctx \d+ with conf \S+/
+--- grep_error_log_out
+run http ctx 3 with conf {"body":512},
+run http ctx 4 with conf {"body":256},
+
+
+
+=== TEST 5: multi plugin in same req
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin1 = assert(wasm.load("t/testdata/http_lifecycle/main.go.wasm"))
+        local plugin2 = assert(wasm.load("t/testdata/http_lifecycle/main.go.wasm"))
+        local ctx1 = assert(wasm.on_configure(plugin1, '{"body":512}'))
+        local ctx2 = assert(wasm.on_configure(plugin2, '{"body":256}'))
+        assert(wasm.on_http_request_headers(ctx1))
+        assert(wasm.on_http_request_headers(ctx2))
+    }
+}
+--- grep_error_log eval
+qr/run http ctx \d+ with conf \S+/
+--- grep_error_log_out
+run http ctx 2 with conf {"body":512},
+run http ctx 2 with conf {"body":256},

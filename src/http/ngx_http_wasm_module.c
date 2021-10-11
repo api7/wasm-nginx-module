@@ -20,6 +20,8 @@ static ngx_str_t proxy_on_context_create = ngx_string("proxy_on_context_create")
 static ngx_str_t proxy_on_configure = ngx_string("proxy_on_configure");
 static ngx_str_t proxy_on_done = ngx_string("proxy_on_done");
 static ngx_str_t proxy_on_delete = ngx_string("proxy_on_delete");
+static ngx_str_t proxy_on_request_headers =
+    ngx_string("proxy_on_request_headers");
 
 
 typedef struct {
@@ -348,6 +350,7 @@ ngx_http_wasm_on_configure(ngx_http_wasm_plugin_t *hw_plugin, const char *conf, 
     if (hwp_ctx->state == NULL) {
         goto free_hwp_ctx;
     }
+    hwp_ctx->state->r = NULL;
 
     state_conf = (u_char *) (hwp_ctx->state + 1);
     /* copy conf so we can access it anytime */
@@ -360,6 +363,9 @@ ngx_http_wasm_on_configure(ngx_http_wasm_plugin_t *hw_plugin, const char *conf, 
 
     rc = ngx_wasm_vm.call(plugin, &proxy_on_configure, true,
                           NGX_WASM_PARAM_I32_I32, ctx_id, size);
+
+    ngx_http_wasm_set_state(NULL);
+
     if (rc <= 0) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "failed to configure plugin context %d, rc: %d",
                       ctx_id, rc);
@@ -431,42 +437,47 @@ static void
 ngx_http_wasm_cleanup(void *data)
 {
     ngx_int_t                     rc;
+    ngx_uint_t                    i;
     ngx_http_wasm_ctx_t          *ctx = data;
-    ngx_http_wasm_http_ctx_t     *http_ctx = ctx->http_ctx;
+    ngx_array_t                  *http_ctxs = ctx->http_ctxs;
     uint32_t                      ctx_id;
+    ngx_http_wasm_http_ctx_t     *http_ctx;
     ngx_http_wasm_plugin_ctx_t   *hwp_ctx;
     void                         *plugin;
     ngx_log_t                    *log;
 
     log = ngx_cycle->log;
 
-    if (http_ctx == NULL) {
+    if (http_ctxs == NULL) {
         return;
     }
 
-    ctx_id = http_ctx->id;
-    hwp_ctx = http_ctx->hwp_ctx;
-    plugin = hwp_ctx->hw_plugin->plugin;
+    for (i = 0; i < http_ctxs->nelts; i++) {
+        http_ctx = ((ngx_http_wasm_http_ctx_t **) http_ctxs->elts)[i];
+        ctx_id = http_ctx->id;
+        hwp_ctx = http_ctx->hwp_ctx;
+        plugin = hwp_ctx->hw_plugin->plugin;
 
-    ngx_queue_remove(&http_ctx->queue);
-    ngx_queue_insert_head(&hwp_ctx->free, &http_ctx->queue);
+        ngx_queue_remove(&http_ctx->queue);
+        ngx_queue_insert_head(&hwp_ctx->free, &http_ctx->queue);
 
-    rc = ngx_wasm_vm.call(plugin, &proxy_on_done, true, NGX_WASM_PARAM_I32, ctx_id);
-    if (rc <= 0) {
-        ngx_log_error(NGX_LOG_ERR, log, 0, "failed to mark context %d as done, rc: %d",
-                      ctx_id, rc);
-    }
+        rc = ngx_wasm_vm.call(plugin, &proxy_on_done, true, NGX_WASM_PARAM_I32, ctx_id);
+        if (rc <= 0) {
+            ngx_log_error(NGX_LOG_ERR, log, 0, "failed to mark context %d as done, rc: %d",
+                          ctx_id, rc);
+        }
 
-    rc = ngx_wasm_vm.call(plugin, &proxy_on_delete, false, NGX_WASM_PARAM_I32, ctx_id);
-    if (rc != NGX_OK) {
-        ngx_log_error(NGX_LOG_ERR, log, 0, "failed to delete context %d, rc: %d",
-                      ctx_id, rc);
-    }
+        rc = ngx_wasm_vm.call(plugin, &proxy_on_delete, false, NGX_WASM_PARAM_I32, ctx_id);
+        if (rc != NGX_OK) {
+            ngx_log_error(NGX_LOG_ERR, log, 0, "failed to delete context %d, rc: %d",
+                          ctx_id, rc);
+        }
 
-    ngx_log_error(NGX_LOG_INFO, log, 0, "free http context %d", ctx_id);
+        ngx_log_error(NGX_LOG_INFO, log, 0, "free http context %d", ctx_id);
 
-    if (hwp_ctx->done) {
-        ngx_http_wasm_free_plugin_ctx(hwp_ctx);
+        if (hwp_ctx->done) {
+            ngx_http_wasm_free_plugin_ctx(hwp_ctx);
+        }
     }
 }
 
@@ -505,7 +516,10 @@ ngx_http_wasm_get_module_ctx(ngx_http_request_t *r)
 ngx_http_wasm_http_ctx_t *
 ngx_http_wasm_fetch_http_ctx(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r)
 {
+    ngx_uint_t                   i;
     ngx_http_wasm_ctx_t         *ctx;
+    ngx_http_wasm_http_ctx_t    *http_ctx;
+    ngx_http_wasm_http_ctx_t   **p;
 
 
     ctx = ngx_http_wasm_get_module_ctx(r);
@@ -513,11 +527,30 @@ ngx_http_wasm_fetch_http_ctx(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_reque
         return NULL;
     }
 
-    if (ctx->http_ctx == NULL) {
-        ctx->http_ctx = ngx_http_wasm_create_http_ctx(hwp_ctx, r);
+    if (ctx->http_ctxs == NULL) {
+        ctx->http_ctxs = ngx_array_create(r->pool, 1, sizeof(ngx_http_wasm_ctx_t *));
+        if (ctx->http_ctxs == NULL) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "no memory");
+            return NULL;
+        }
     }
 
-    return ctx->http_ctx;
+    p = ctx->http_ctxs->elts;
+
+    for (i = 0; i < ctx->http_ctxs->nelts; i++) {
+        if (p[i]->hwp_ctx == hwp_ctx) {
+            return p[i];
+        }
+    }
+
+    http_ctx = ngx_http_wasm_create_http_ctx(hwp_ctx, r);
+    if (http_ctx == NULL) {
+        return NULL;
+    }
+
+    p = ngx_array_push(ctx->http_ctxs);
+    *p = http_ctx;
+    return http_ctx;
 }
 
 
@@ -536,12 +569,19 @@ ngx_http_wasm_on_http(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r
         return NGX_DECLINED;
     }
 
-    rc = NGX_OK;
+    hwp_ctx->state->r = r;
+    ngx_http_wasm_set_state(hwp_ctx->state);
 
     http_ctx = ngx_http_wasm_fetch_http_ctx(hwp_ctx, r);
     if (http_ctx == NULL) {
+        ngx_http_wasm_set_state(NULL);
         return NGX_DECLINED;
     }
 
+    rc = ngx_wasm_vm.call(hwp_ctx->hw_plugin->plugin,
+                          &proxy_on_request_headers,
+                          true, NGX_WASM_PARAM_I32_I32_I32, http_ctx->id,
+                          0, 1);
+    ngx_http_wasm_set_state(NULL);
     return rc;
 }

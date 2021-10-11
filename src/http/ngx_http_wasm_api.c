@@ -47,10 +47,19 @@ proxy_set_effective_context(int32_t id)
 int32_t
 proxy_log(int32_t log_level, int32_t addr, int32_t size)
 {
-    const u_char *p;
-    ngx_uint_t    host_log_level = NGX_LOG_ERR;
+    const u_char       *p;
+    ngx_uint_t          host_log_level = NGX_LOG_ERR;
+    ngx_http_request_t *r;
+    ngx_log_t          *log;
 
-    p = ngx_wasm_vm.get_memory(ngx_cycle->log, addr, size);
+    r = ngx_http_wasm_get_req();
+    if (r == NULL) {
+        log = ngx_cycle->log;
+    } else {
+        log = r->connection->log;
+    }
+
+    p = ngx_wasm_vm.get_memory(log, addr, size);
     if (p == NULL) {
       return PROXY_RESULT_INVALID_MEMORY_ACCESS;
     }
@@ -81,7 +90,7 @@ proxy_log(int32_t log_level, int32_t addr, int32_t size)
         break;
     }
 
-    ngx_log_error(host_log_level, ngx_cycle->log, 0, "%*s", size, p);
+    ngx_log_error(host_log_level, log, 0, "%*s", size, p);
 
     return PROXY_RESULT_OK;
 }
@@ -100,8 +109,14 @@ proxy_get_buffer_bytes(int32_t type, int32_t start, int32_t length,
     u_char         *buf;
 
     const ngx_str_t      *conf;
+    ngx_http_request_t   *r;
 
-    log = ngx_cycle->log;
+    r = ngx_http_wasm_get_req();
+    if (r == NULL) {
+        log = ngx_cycle->log;
+    } else {
+        log = r->connection->log;
+    }
 
     switch (type) {
     case PROXY_BUFFER_TYPE_PLUGIN_CONFIGURATION:

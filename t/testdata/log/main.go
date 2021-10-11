@@ -31,3 +31,18 @@ func (ctx *pluginLifecycle) OnPluginStart(pluginConfigurationSize int) types.OnP
 	proxywasm.LogTrace("ouch, something is wrong")
 	return types.OnPluginStartStatusOK
 }
+
+func (*pluginLifecycle) NewHttpContext(contextID uint32) types.HttpContext {
+	proxywasm.LogWarnf("create http ctx %d", contextID)
+	return &httpLifecycle{contextID: contextID}
+}
+
+type httpLifecycle struct {
+	types.DefaultHttpContext
+	contextID uint32
+}
+
+func (ctx *httpLifecycle) OnHttpRequestHeaders(numHeaders int, endOfStream bool) types.Action {
+	proxywasm.LogWarnf("run http ctx %d", ctx.contextID)
+	return types.ActionContinue
+}
