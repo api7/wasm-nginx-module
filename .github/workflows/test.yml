@@ -21,8 +21,8 @@ jobs:
           sudo apt install -y cpanminus build-essential libncurses5-dev libreadline-dev libssl-dev perl luarocks
           sudo luarocks install lua-resty-http > build.log 2>&1 || (cat build.log && exit 1)
 
-          wget https://github.com/tinygo-org/tinygo/releases/download/v0.19.0/tinygo_0.19.0_amd64.deb 2>/dev/null
-          sudo dpkg -i tinygo_0.19.0_amd64.deb
+          wget https://github.com/tinygo-org/tinygo/releases/download/v0.20.0/tinygo_0.20.0_amd64.deb
+          sudo dpkg -i tinygo_0.20.0_amd64.deb
 
       - name: Before install
         run: |
