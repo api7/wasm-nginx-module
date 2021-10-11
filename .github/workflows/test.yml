@@ -18,8 +18,10 @@ jobs:
 
       - name: Get dependencies
         run: |
-          sudo apt install -y cpanminus build-essential libncurses5-dev libreadline-dev libssl-dev perl
-          wget https://github.com/tinygo-org/tinygo/releases/download/v0.19.0/tinygo_0.19.0_amd64.deb
+          sudo apt install -y cpanminus build-essential libncurses5-dev libreadline-dev libssl-dev perl luarocks
+          sudo luarocks install lua-resty-http > build.log 2>&1 || (cat build.log && exit 1)
+
+          wget https://github.com/tinygo-org/tinygo/releases/download/v0.19.0/tinygo_0.19.0_amd64.deb 2>/dev/null
           sudo dpkg -i tinygo_0.19.0_amd64.deb
 
       - name: Before install
@@ -35,6 +37,6 @@ jobs:
 
       - name: Script
         run: |
-          make build.all.testdata
+          sudo make build.all.testdata
           export PATH=$OPENRESTY_PREFIX/nginx/sbin:$PATH
           prove -I. -Itest-nginx/lib -r t/
