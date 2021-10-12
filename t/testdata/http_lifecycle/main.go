@@ -37,3 +37,14 @@ type httpLifecycle struct {
 	types.DefaultHttpContext
 	contextID uint32
 }
+
+func (ctx *httpLifecycle) OnHttpRequestHeaders(numHeaders int, endOfStream bool) types.Action {
+	data, err := proxywasm.GetPluginConfiguration()
+	if err != nil {
+		proxywasm.LogCriticalf("error reading plugin configuration: %v", err)
+		return types.ActionContinue
+	}
+
+	proxywasm.LogWarnf("run http ctx %d with conf %s", ctx.contextID, string(data))
+	return types.ActionContinue
+}

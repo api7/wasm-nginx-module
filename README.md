@@ -63,6 +63,26 @@ if not ctx then
 end
 ```
 
+### on_http_request_headers
+
+`syntax: ok, err = proxy_wasm.on_http_request_headers(plugin_ctx)`
+
+Run the HTTP request headers filter in the plugin of the given plugin ctx.
+
+```lua
+local plugin, err = proxy_wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+if not plugin then
+    ngx.log(ngx.ERR, "failed to load wasm ", err)
+    return
+end
+local ctx, err = wasm.on_configure(plugin, '{"body":512}')
+if not ctx then
+    ngx.log(ngx.ERR, "failed to create plugin ctx ", err)
+    return
+end
+assert(wasm.on_http_request_headers(ctx))
+```
+
 ## proxy-wasm ABI
 
 Implemented proxy-wasm ABI can be found in [proxy_wasm_abi](./proxy_wasm_abi.md).

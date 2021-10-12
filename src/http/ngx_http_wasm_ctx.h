@@ -35,7 +35,7 @@ typedef struct {
 
 
 typedef struct {
-  ngx_http_wasm_http_ctx_t      *http_ctx;
+    ngx_array_t      *http_ctxs;
 } ngx_http_wasm_ctx_t;
 
 

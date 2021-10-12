@@ -87,6 +87,23 @@ Called when the host environment starts the plugin. Its configuration (`plugin_c
 might be retrieved using `proxy_get_buffer`.
 
 
+## HTTP (L7) extensions
+
+### `proxy_on_request_headers`
+
+* params:
+  - `i32 (uint32_t) context_id`
+  - `i32 (size_t) num_headers`
+  - `i32 (bool) end_of_stream`
+* returns:
+  - `i32 (proxy_action_t) next_action`
+
+Called when HTTP request headers are received from the client. TODO: Headers can be retrieved using
+`proxy_get_map` and/or `proxy_get_map_value`.
+
+TODO: pass a correct `num_headers` but not 0.
+
+
 # Functions implemented in the host environment
 
 All functions implemented in the host environment return `proxy_result_t`, which indicates the
