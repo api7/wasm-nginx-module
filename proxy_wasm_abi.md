@@ -156,3 +156,25 @@ because proxy-wasm-go-sdk uses it.
   - `i32 (size_t*) return_buffer_size`
 * returns:
   - `i32 (proxy_result_t) call_result`
+
+
+## HTTP (L7) extensions
+
+### `proxy_send_http_response`
+
+* params:
+  - `i32 (uint32_t) response_code`
+  - `i32 (const char*) response_code_details_data`
+  - `i32 (size_t) response_code_details_size`
+  - `i32 (const char*) response_body_data`
+  - `i32 (size_t) response_body_size`
+  - `i32 (const char*) additional_headers_map_data`
+  - `i32 (size_t) additional_headers_size`
+  - `i32 (uint32_t) grpc_status`
+* returns:
+  - `i32 (proxy_result_t) call_result`
+
+Sends HTTP response without forwarding request to the upstream.
+Note: we only implement the handling of response_code and response_body.
+
+We only implement `proxy_send_local_response` as an alias because proxy-wasm-go-sdk uses it.
