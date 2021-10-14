@@ -1,5 +1,6 @@
 #include "vm/vm.h"
 #include "ngx_http_wasm_api.h"
+#include "ngx_http_wasm_module.h"
 #include "ngx_http_wasm_state.h"
 
 
@@ -154,6 +155,48 @@ proxy_get_buffer_bytes(int32_t type, int32_t start, int32_t length,
     }
 
     *p = WP(buf_addr);
+
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_send_http_response(int32_t res_code,
+                         int32_t res_code_details_data, int32_t res_code_details_size,
+                         int32_t body, int32_t body_size,
+                         int32_t headers, int32_t headers_size,
+                         int32_t grpc_status)
+{
+    ngx_http_wasm_main_conf_t  *wmcf;
+    ngx_http_request_t         *r;
+    ngx_log_t                  *log;
+    const u_char               *p;
+
+    r = ngx_http_wasm_get_req();
+    if (r == NULL) {
+        return PROXY_RESULT_BAD_ARGUMENT;
+    }
+
+    log = r->connection->log;
+
+    wmcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
+    /* TODO handle other args */
+    wmcf->code = res_code;
+    wmcf->body.len = body_size;
+
+    if (body_size > 0) {
+        p = ngx_wasm_vm.get_memory(log, body, body_size);
+        if (p == NULL) {
+            return PROXY_RESULT_INVALID_MEMORY_ACCESS;
+        }
+
+        wmcf->body.data = ngx_palloc(r->pool, body_size);
+        if (wmcf->body.data == NULL) {
+            ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
+            return PROXY_RESULT_INTERNAL_FAILURE;
+        }
+        ngx_memcpy(wmcf->body.data, p, body_size);
+    }
 
     return PROXY_RESULT_OK;
 }

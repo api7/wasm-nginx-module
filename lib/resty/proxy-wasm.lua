@@ -1,6 +1,7 @@
 local ffi = require("ffi")
 local base = require("resty.core.base")
 local ffi_gc = ffi.gc
+local ffi_str = ffi.string
 local C = ffi.C
 local get_request = base.get_request
 
@@ -9,12 +10,19 @@ base.allows_subsystem("http")
 
 
 ffi.cdef[[
+typedef unsigned char u_char;
+typedef struct {
+    size_t      len;
+    u_char     *data;
+} ngx_str_t;
 typedef long ngx_int_t;
 void *ngx_http_wasm_load_plugin(const char *code, size_t size);
 void ngx_http_wasm_unload_plugin(void *plugin);
 void *ngx_http_wasm_on_configure(void *plugin, const char *conf, size_t size);
 void ngx_http_wasm_delete_plugin_ctx(void *hwp_ctx);
+
 ngx_int_t ngx_http_wasm_on_http(void *hwp_ctx, void *r, int type);
+ngx_str_t *ngx_http_wasm_fetch_local_body(void *r);
 ]]
 
 
@@ -75,6 +83,17 @@ function _M.on_http_request_headers(plugin_ctx)
     local rc = C.ngx_http_wasm_on_http(plugin_ctx, r, HTTP_REQUEST_HEADERS)
     if rc < 0 then
         return nil, "failed to run proxy_on_http_request_headers"
+    end
+
+    if rc >= 100 then
+        ngx.status = rc
+        local p = C.ngx_http_wasm_fetch_local_body(r)
+        if p ~= nil then
+            local body = ffi_str(p.data, p.len)
+            ngx.print(body)
+        end
+
+        ngx.exit(0)
     end
 
     return true

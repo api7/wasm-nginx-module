@@ -1,6 +1,7 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
+#include "ngx_http_wasm_module.h"
 #include "ngx_http_wasm_state.h"
 #include "ngx_http_wasm_ctx.h"
 #include "vm/vm.h"
@@ -22,11 +23,6 @@ static ngx_str_t proxy_on_done = ngx_string("proxy_on_done");
 static ngx_str_t proxy_on_delete = ngx_string("proxy_on_delete");
 static ngx_str_t proxy_on_request_headers =
     ngx_string("proxy_on_request_headers");
-
-
-typedef struct {
-    ngx_str_t       vm;
-} ngx_http_wasm_main_conf_t;
 
 
 typedef enum {
@@ -89,6 +85,8 @@ ngx_http_wasm_create_main_conf(ngx_conf_t *cf)
 
     /* set by ngx_pcalloc:
      *      wmcf->vm = { 0, NULL };
+     *      wmcf->code = 0;
+     *      wmcf->body = { 0, NULL };
      */
 
     return wmcf;
@@ -561,6 +559,7 @@ ngx_http_wasm_on_http(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r
     ngx_int_t                        rc;
     ngx_log_t                       *log;
     ngx_http_wasm_http_ctx_t        *http_ctx;
+    ngx_http_wasm_main_conf_t       *wmcf;
 
     log = r->connection->log;
 
@@ -569,6 +568,7 @@ ngx_http_wasm_on_http(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r
         return NGX_DECLINED;
     }
 
+    wmcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
     hwp_ctx->state->r = r;
     ngx_http_wasm_set_state(hwp_ctx->state);
 
@@ -583,5 +583,37 @@ ngx_http_wasm_on_http(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r
                           true, NGX_WASM_PARAM_I32_I32_I32, http_ctx->id,
                           0, 1);
     ngx_http_wasm_set_state(NULL);
+
+    if (rc < 0) {
+        return rc;
+    }
+
+    if (wmcf->code >= 100) {
+        int32_t code = wmcf->code;
+
+        /* reset code for next use */
+        wmcf->code = 0;
+
+        /* Return given http response instead of reaching the upstream.
+         * The body will be fetched later by ngx_http_wasm_fetch_local_body
+         * */
+        return code;
+    }
+
     return rc;
+}
+
+
+ngx_str_t *
+ngx_http_wasm_fetch_local_body(ngx_http_request_t *r)
+{
+    ngx_http_wasm_main_conf_t       *wmcf;
+
+    /* call after ngx_http_wasm_on_http */
+
+    wmcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
+    if (wmcf->body.len) {
+        return &wmcf->body;
+    }
+    return NULL;
 }
