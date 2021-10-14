@@ -7,11 +7,13 @@
 
 
 typedef struct {
-    void        *plugin;
-    uint32_t     cur_ctx_id;
-    ngx_queue_t  occupied;
-    ngx_queue_t  free;
-    unsigned     done:1;
+    void                  *plugin;
+    uint32_t               cur_ctx_id;
+    ngx_str_t              name;
+    ngx_http_wasm_state_t *state;
+    ngx_queue_t            occupied;
+    ngx_queue_t            free;
+    unsigned               done:1;
 } ngx_http_wasm_plugin_t;
 
 

@@ -16,6 +16,11 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 10.0.0
+
       - name: Get dependencies
         run: |
           sudo apt install -y cpanminus build-essential libncurses5-dev libreadline-dev libssl-dev perl luarocks

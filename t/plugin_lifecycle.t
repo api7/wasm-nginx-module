@@ -9,7 +9,7 @@ __DATA__
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        assert(wasm.load("t/testdata/plugin_lifecycle/main.go.wasm"))
+        assert(wasm.load("plugin", "t/testdata/plugin_lifecycle/main.go.wasm"))
     }
 }
 
@@ -21,7 +21,7 @@ location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
         for i = 1, 3 do
-            assert(wasm.load("t/testdata/plugin_lifecycle/main.go.wasm"))
+            assert(wasm.load("plugin", "t/testdata/plugin_lifecycle/main.go.wasm"))
         end
     }
 }
@@ -33,7 +33,7 @@ location /t {
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+        local plugin = wasm.load("plugin", "t/testdata/plugin_lifecycle/main.go.wasm")
         assert(wasm.on_configure(plugin, '{"body":512}'))
     }
 }
@@ -51,7 +51,7 @@ plugin config: {"body":512}
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+        local plugin = wasm.load("plugin", "t/testdata/plugin_lifecycle/main.go.wasm")
         local manager = {
             plugin = plugin,
             ctxs = {}
@@ -79,7 +79,7 @@ qr/proxy_on_done [123]/
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+        local plugin = wasm.load("plugin", "t/testdata/plugin_lifecycle/main.go.wasm")
         local ref
         for i = 1, 2 do
             do
@@ -118,7 +118,7 @@ location /t {
         local wasm = require("resty.proxy-wasm")
         local ref
         do
-            local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+            local plugin = wasm.load("plugin", "t/testdata/plugin_lifecycle/main.go.wasm")
             for i = 1, 2 do
                 local ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
             end
@@ -150,7 +150,7 @@ location /t {
         local wasm = require("resty.proxy-wasm")
         for i = 1, 2 do
             do
-                local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+                local plugin = wasm.load("plugin", "t/testdata/plugin_lifecycle/main.go.wasm")
                 for j = 1, 2 do
                     local ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
                 end
@@ -183,7 +183,7 @@ location /t {
         local wasm = require("resty.proxy-wasm")
         local ctx
         do
-            local plugin = wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+            local plugin = wasm.load("plugin", "t/testdata/plugin_lifecycle/main.go.wasm")
             ctx = assert(wasm.on_configure(plugin, 'failed in proxy_on_done'))
             collectgarbage()
         end

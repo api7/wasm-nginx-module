@@ -43,6 +43,16 @@
     int32_t p3 = args[2].of.i32; \
     int32_t res = NAME(p1, p2, p3);
 
+#define DEFINE_WASM_API_ARG_I32_I32_I32_I32 \
+    int32_t, int32_t, int32_t, int32_t
+
+#define DEFINE_WASM_API_ARG_CHECK_I32_I32_I32_I32(NAME) \
+    int32_t p1 = args[0].of.i32; \
+    int32_t p2 = args[1].of.i32; \
+    int32_t p3 = args[2].of.i32; \
+    int32_t p4 = args[3].of.i32; \
+    int32_t res = NAME(p1, p2, p3, p4);
+
 #define DEFINE_WASM_API_ARG_I32_I32_I32_I32_I32 \
     int32_t, int32_t, int32_t, int32_t, int32_t
 
@@ -78,6 +88,8 @@
     1, {WASM_I32}
 #define DEFINE_WASM_NAME_ARG_I32_I32_I32 \
     3, {WASM_I32, WASM_I32, WASM_I32}
+#define DEFINE_WASM_NAME_ARG_I32_I32_I32_I32 \
+    4, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}
 #define DEFINE_WASM_NAME_ARG_I32_I32_I32_I32_I32 \
     5, {WASM_I32, WASM_I32, WASM_I32, WASM_I32, WASM_I32}
 #define DEFINE_WASM_NAME_ARG_I32_I32_I32_I32_I32_I32_I32_I32 \
@@ -98,6 +110,9 @@ DEFINE_WASM_API(proxy_set_effective_context,
 DEFINE_WASM_API(proxy_log,
                 DEFINE_WASM_API_ARG_I32_I32_I32,
                 DEFINE_WASM_API_ARG_CHECK_I32_I32_I32(proxy_log))
+DEFINE_WASM_API(proxy_get_property,
+                DEFINE_WASM_API_ARG_I32_I32_I32_I32,
+                DEFINE_WASM_API_ARG_CHECK_I32_I32_I32_I32(proxy_get_property))
 DEFINE_WASM_API(proxy_get_buffer_bytes,
                 DEFINE_WASM_API_ARG_I32_I32_I32_I32_I32,
                 DEFINE_WASM_API_ARG_CHECK_I32_I32_I32_I32_I32(proxy_get_buffer_bytes))
@@ -110,6 +125,7 @@ DEFINE_WASM_API(proxy_send_http_response,
 static ngx_wasm_host_api_t host_apis[] = {
     DEFINE_WASM_NAME(proxy_set_effective_context, DEFINE_WASM_NAME_ARG_I32)
     DEFINE_WASM_NAME(proxy_log, DEFINE_WASM_NAME_ARG_I32_I32_I32)
+    DEFINE_WASM_NAME(proxy_get_property, DEFINE_WASM_NAME_ARG_I32_I32_I32_I32)
     DEFINE_WASM_NAME(proxy_get_buffer_bytes, DEFINE_WASM_NAME_ARG_I32_I32_I32_I32_I32)
     DEFINE_WASM_NAME_ALIAS(proxy_send_http_response,
                            DEFINE_WASM_NAME_ARG_I32_I32_I32_I32_I32_I32_I32_I32,

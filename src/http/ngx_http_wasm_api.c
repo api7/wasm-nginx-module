@@ -80,6 +80,32 @@ ngx_http_wasm_copy_to_wasm(ngx_log_t *log, const u_char *data, int32_t len,
 
 
 int32_t
+proxy_get_property(int32_t path_data, int32_t path_size,
+                   int32_t res_data, int32_t res_size)
+{
+    ngx_log_t          *log;
+    const u_char       *p;
+
+    log = ngx_http_wasm_get_log();
+
+    p = ngx_wasm_vm.get_memory(log, path_data, path_size);
+    if (p == NULL) {
+      return PROXY_RESULT_INVALID_MEMORY_ACCESS;
+    }
+
+    if (ngx_strncmp(p, "plugin_root_id", sizeof("plugin_root_id") - 1) == 0) {
+        ngx_str_t       *name;
+
+        name = ngx_http_wasm_get_plugin_name();
+        return ngx_http_wasm_copy_to_wasm(log, name->data, name->len,
+                                          res_data, res_size);
+    }
+
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
 proxy_log(int32_t log_level, int32_t addr, int32_t size)
 {
     const u_char       *p;

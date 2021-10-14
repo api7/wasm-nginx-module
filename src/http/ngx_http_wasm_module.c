@@ -162,7 +162,8 @@ ngx_http_wasm_init(ngx_conf_t *cf)
 
 
 void *
-ngx_http_wasm_load_plugin(const char *bytecode, size_t size)
+ngx_http_wasm_load_plugin(const char *name, size_t name_len,
+                          const char *bytecode, size_t size)
 {
     void                    *plugin;
     ngx_int_t                rc;
@@ -185,13 +186,22 @@ ngx_http_wasm_load_plugin(const char *bytecode, size_t size)
         goto free_plugin;
     }
 
-    hw_plugin = ngx_calloc(sizeof(ngx_http_wasm_plugin_t), ngx_cycle->log);
+    hw_plugin = ngx_calloc(sizeof(ngx_http_wasm_plugin_t) + name_len +
+                           sizeof(ngx_http_wasm_state_t), ngx_cycle->log);
     if (hw_plugin == NULL) {
         goto free_plugin;
     }
 
     hw_plugin->cur_ctx_id = 0;
     hw_plugin->plugin = plugin;
+
+    hw_plugin->name.len = name_len;
+    hw_plugin->name.data = (u_char *) (hw_plugin + 1);
+    ngx_memcpy(hw_plugin->name.data, name, name_len);
+
+    hw_plugin->state = (ngx_http_wasm_state_t *) (hw_plugin->name.data + name_len + 1);
+    hw_plugin->state->plugin_name = &hw_plugin->name;
+
     ngx_queue_init(&hw_plugin->occupied);
     ngx_queue_init(&hw_plugin->free);
     return hw_plugin;
@@ -327,6 +337,8 @@ ngx_http_wasm_on_configure(ngx_http_wasm_plugin_t *hw_plugin, const char *conf, 
         ngx_queue_init(&hwp_ctx->free);
     }
 
+    ngx_http_wasm_set_state(hw_plugin->state);
+
     rc = ngx_wasm_vm.call(plugin, &proxy_on_context_create, false,
                           NGX_WASM_PARAM_I32_I32, ctx_id, 0);
     if (rc != NGX_OK) {
@@ -349,6 +361,7 @@ ngx_http_wasm_on_configure(ngx_http_wasm_plugin_t *hw_plugin, const char *conf, 
         goto free_hwp_ctx;
     }
     hwp_ctx->state->r = NULL;
+    hwp_ctx->state->plugin_name = &hwp_ctx->hw_plugin->name;
 
     state_conf = (u_char *) (hwp_ctx->state + 1);
     /* copy conf so we can access it anytime */

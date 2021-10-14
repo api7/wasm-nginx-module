@@ -4,5 +4,8 @@ wasmtime-*-c-api
 wasmtime-*-c-api.tar.xz
 wasmtime-c-api
 *.wasm
+*.wasm.map
+*.wat
 
 t/servroot
+node_modules/

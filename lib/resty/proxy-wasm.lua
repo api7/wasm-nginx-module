@@ -16,7 +16,7 @@ typedef struct {
     u_char     *data;
 } ngx_str_t;
 typedef long ngx_int_t;
-void *ngx_http_wasm_load_plugin(const char *code, size_t size);
+void *ngx_http_wasm_load_plugin(const char *name, size_t name_len, const char *code, size_t size);
 void ngx_http_wasm_unload_plugin(void *plugin);
 void *ngx_http_wasm_on_configure(void *plugin, const char *conf, size_t size);
 void ngx_http_wasm_delete_plugin_ctx(void *hwp_ctx);
@@ -30,7 +30,7 @@ local _M = {}
 local HTTP_REQUEST_HEADERS = 1
 
 
-function _M.load(path)
+function _M.load(name, path)
     local f, err = io.open(path)
     if not f then
         return nil, err
@@ -42,7 +42,7 @@ function _M.load(path)
         return nil, err
     end
 
-    local plugin = C.ngx_http_wasm_load_plugin(data, #data)
+    local plugin = C.ngx_http_wasm_load_plugin(name, #name, data, #data)
     if plugin == nil then
         return nil, "failed to load wasm plugin"
     end
