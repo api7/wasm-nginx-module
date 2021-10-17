@@ -31,3 +31,14 @@ ngx_http_wasm_get_req(void)
 
     return cur_state->r;
 }
+
+
+ngx_log_t *
+ngx_http_wasm_get_log(void)
+{
+    if (cur_state != NULL && cur_state->r != NULL) {
+        return cur_state->r->connection->log;
+    }
+
+    return ngx_cycle->log;
+}
