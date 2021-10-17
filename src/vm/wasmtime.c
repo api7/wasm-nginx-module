@@ -315,8 +315,12 @@ ngx_wasm_wasmtime_malloc(ngx_log_t *log, int32_t size)
     found = wasmtime_instance_export_get(cur_plugin->context, &cur_plugin->instance,
                                          "proxy_on_memory_allocate", 24, &func);
     if (!found) {
-        ngx_log_error(NGX_LOG_ERR, log, 0, "can't find malloc in the WASM plugin");
-        return 0;
+        found = wasmtime_instance_export_get(cur_plugin->context, &cur_plugin->instance,
+                                             "malloc", 6, &func);
+        if (!found) {
+            ngx_log_error(NGX_LOG_ERR, log, 0, "can't find malloc in the WASM plugin");
+            return 0;
+        }
     }
 
     params[0].kind = WASMTIME_I32;
