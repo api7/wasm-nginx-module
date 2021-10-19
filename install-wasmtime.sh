@@ -9,6 +9,7 @@ if echo "int main(void) {}" | gcc -o /dev/null -v -x c - &> /dev/stdout| grep co
     git clone git@github.com:bytecodealliance/wasmtime -b ${VER} \
         && cd wasmtime \
         && git submodule update --init \
-        && cargo build --release --manifest-path crates/c-api/Cargo.toml
+        && RUSTFLAGS="-C target-feature=-crt-static" \
+           cargo build --release --manifest-path crates/c-api/Cargo.toml
 fi
 mv wasmtime-${VER}-x86_64-linux-c-api wasmtime-c-api
