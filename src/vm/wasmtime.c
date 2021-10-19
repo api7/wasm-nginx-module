@@ -152,13 +152,13 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
     error = wasmtime_linker_instantiate(linker, context, module, &plugin->instance, &trap);
     if (error != NULL) {
         ngx_wasm_wasmtime_report_error(ngx_cycle->log, "failed to new instance: ", error, NULL);
-        goto free_linker;
+        goto free_plugin;
     }
 
     ok = wasmtime_instance_export_get(context, &plugin->instance, "memory", strlen("memory"), &item);
     if (!ok || item.kind != WASMTIME_EXTERN_MEMORY) {
         ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "the wasm plugin doesn't export memory");
-        goto free_linker;
+        goto free_plugin;
     }
     plugin->memory = item.of.memory;
 
@@ -171,6 +171,9 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
     ngx_log_error(NGX_LOG_INFO, ngx_cycle->log, 0, "loaded wasm plugin");
 
     return plugin;
+
+free_plugin:
+    ngx_free(plugin);
 
 free_linker:
     wasmtime_linker_delete(linker);
@@ -313,7 +316,8 @@ ngx_wasm_wasmtime_malloc(ngx_log_t *log, int32_t size)
     bool                        found;
 
     found = wasmtime_instance_export_get(cur_plugin->context, &cur_plugin->instance,
-                                         "proxy_on_memory_allocate", 24, &func);
+                                         "malloc", 6, &func);
+                                         //"proxy_on_memory_allocate", 24, &func);
     if (!found) {
         found = wasmtime_instance_export_get(cur_plugin->context, &cur_plugin->instance,
                                              "malloc", 6, &func);

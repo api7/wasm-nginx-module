@@ -36,12 +36,12 @@ not set, the WASM VM won't be enabled.
 
 ### load
 
-`syntax: plugin, err = proxy_wasm.load(path)`
+`syntax: plugin, err = proxy_wasm.load(name, path)`
 
 Load a `.wasm` file from the filesystem and return a WASM plugin.
 
 ```lua
-local plugin, err = proxy_wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+local plugin, err = proxy_wasm.load("plugin","t/testdata/plugin_lifecycle/main.go.wasm")
 ```
 
 ### on_configure
@@ -51,7 +51,7 @@ local plugin, err = proxy_wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
 Create a plugin ctx with the given plugin and conf.
 
 ```lua
-local plugin, err = proxy_wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+local plugin, err = proxy_wasm.load("plugin","t/testdata/plugin_lifecycle/main.go.wasm")
 if not plugin then
     ngx.log(ngx.ERR, "failed to load wasm ", err)
     return
@@ -70,7 +70,7 @@ end
 Run the HTTP request headers filter in the plugin of the given plugin ctx.
 
 ```lua
-local plugin, err = proxy_wasm.load("t/testdata/plugin_lifecycle/main.go.wasm")
+local plugin, err = proxy_wasm.load("plugin","t/testdata/plugin_lifecycle/main.go.wasm")
 if not plugin then
     ngx.log(ngx.ERR, "failed to load wasm ", err)
     return

@@ -10,7 +10,7 @@ __DATA__
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local p = wasm.load("t/testdata/log/main.go.wasm")
+        local p = wasm.load("plugin", "t/testdata/log/main.go.wasm")
         wasm.on_configure(p)
     }
 }
@@ -34,7 +34,7 @@ qr/\[emerg\] \d+#\d+: ouch, something is wrong
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin = assert(wasm.load("t/testdata/log/main.go.wasm"))
+        local plugin = assert(wasm.load("plugin", "t/testdata/log/main.go.wasm"))
         local ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
         assert(wasm.on_http_request_headers(ctx))
     }

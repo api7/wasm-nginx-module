@@ -9,7 +9,7 @@ __DATA__
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin = assert(wasm.load("t/testdata/http_send_response/main.go.wasm"))
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_send_response/main.go.wasm"))
         local ctx = assert(wasm.on_configure(plugin, '403_body'))
         assert(wasm.on_http_request_headers(ctx))
     }
@@ -25,7 +25,7 @@ should not pass
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin = assert(wasm.load("t/testdata/http_send_response/main.go.wasm"))
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_send_response/main.go.wasm"))
         local ctx = assert(wasm.on_configure(plugin, '502'))
         assert(wasm.on_http_request_headers(ctx))
     }

@@ -9,7 +9,7 @@ __DATA__
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin = assert(wasm.load("t/testdata/http_lifecycle/main.go.wasm"))
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_lifecycle/main.go.wasm"))
         local ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
         assert(wasm.on_http_request_headers(ctx))
         assert(wasm.on_http_request_headers(ctx))
@@ -28,7 +28,7 @@ free http context 2
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin = assert(wasm.load("t/testdata/http_lifecycle/main.go.wasm"))
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_lifecycle/main.go.wasm"))
         do
             local ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
             assert(wasm.on_http_request_headers(ctx))
@@ -48,7 +48,7 @@ free plugin context 1
 --- http_config
     init_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin = assert(wasm.load("t/testdata/http_lifecycle/main.go.wasm"))
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_lifecycle/main.go.wasm"))
         package.loaded.ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
     }
 --- config
@@ -97,7 +97,7 @@ qr/free http context (1|11)$/
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin = assert(wasm.load("t/testdata/http_lifecycle/main.go.wasm"))
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_lifecycle/main.go.wasm"))
         local ctx1 = assert(wasm.on_configure(plugin, '{"body":512}'))
         local ctx2 = assert(wasm.on_configure(plugin, '{"body":256}'))
         assert(wasm.on_http_request_headers(ctx1))
@@ -117,8 +117,8 @@ run http ctx 4 with conf {"body":256},
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin1 = assert(wasm.load("t/testdata/http_lifecycle/main.go.wasm"))
-        local plugin2 = assert(wasm.load("t/testdata/http_lifecycle/main.go.wasm"))
+        local plugin1 = assert(wasm.load("plugin", "t/testdata/http_lifecycle/main.go.wasm"))
+        local plugin2 = assert(wasm.load("plugin", "t/testdata/http_lifecycle/main.go.wasm"))
         local ctx1 = assert(wasm.on_configure(plugin1, '{"body":512}'))
         local ctx2 = assert(wasm.on_configure(plugin2, '{"body":256}'))
         assert(wasm.on_http_request_headers(ctx1))

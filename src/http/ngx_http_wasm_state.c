@@ -42,3 +42,14 @@ ngx_http_wasm_get_log(void)
 
     return ngx_cycle->log;
 }
+
+
+ngx_str_t *
+ngx_http_wasm_get_plugin_name(void)
+{
+    if (cur_state == NULL) {
+        return NULL;
+    }
+
+    return cur_state->plugin_name;
+}
