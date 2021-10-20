@@ -93,7 +93,8 @@ proxy_get_property(int32_t path_data, int32_t path_size,
       return PROXY_RESULT_INVALID_MEMORY_ACCESS;
     }
 
-    if (ngx_strncmp(p, "plugin_root_id", sizeof("plugin_root_id") - 1) == 0) {
+    if (path_size == 14 && ngx_strncmp(p, "plugin_root_id", 14) == 0) {
+        /* assemblyscript SDK assumes plugin_root_id is always given */
         ngx_str_t       *name;
 
         name = ngx_http_wasm_get_plugin_name();
