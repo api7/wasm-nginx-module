@@ -199,7 +199,7 @@ ngx_http_wasm_load_plugin(const char *name, size_t name_len,
     hw_plugin->name.data = (u_char *) (hw_plugin + 1);
     ngx_memcpy(hw_plugin->name.data, name, name_len);
 
-    hw_plugin->state = (ngx_http_wasm_state_t *) (hw_plugin->name.data + name_len + 1);
+    hw_plugin->state = (ngx_http_wasm_state_t *) (hw_plugin->name.data + name_len);
     hw_plugin->state->plugin_name = &hw_plugin->name;
 
     ngx_queue_init(&hw_plugin->occupied);
