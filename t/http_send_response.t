@@ -23,12 +23,16 @@ should not pass
 === TEST 2: without body
 --- config
 location /t {
-    content_by_lua_block {
+    access_by_lua_block {
         local wasm = require("resty.proxy-wasm")
         local plugin = assert(wasm.load("plugin", "t/testdata/http_send_response/main.go.wasm"))
         local ctx = assert(wasm.on_configure(plugin, '502'))
         assert(wasm.on_http_request_headers(ctx))
     }
+    content_by_lua_block {
+        ngx.log(ngx.ERR, "should not reach")
+    }
 }
 --- error_code: 502
---- response_body chomp
+--- response_body_like eval
+qr/<title>502 Bad Gateway<\/title>/
