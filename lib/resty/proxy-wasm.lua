@@ -86,14 +86,14 @@ function _M.on_http_request_headers(plugin_ctx)
     end
 
     if rc >= 100 then
-        ngx.status = rc
         local p = C.ngx_http_wasm_fetch_local_body(r)
         if p ~= nil then
             local body = ffi_str(p.data, p.len)
+            ngx.status = rc
             ngx.print(body)
         end
 
-        ngx.exit(0)
+        ngx.exit(rc)
     end
 
     return true
