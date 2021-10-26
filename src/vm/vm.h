@@ -32,8 +32,15 @@ typedef struct {
      */
     int32_t          (*malloc)(ngx_log_t *log, int32_t size);
 
+    /*
+     * call run a function exported from the plugin.
+     */
     ngx_int_t        (*call)(void *plugin, ngx_str_t *name, bool has_result,
                              int param_type, ...);
+    /*
+     * has check if a function is exported from the plugin.
+     */
+    bool             (*has)(void *plugin, ngx_str_t *name);
 } ngx_wasm_vm_t;
 
 

@@ -288,6 +288,17 @@ ngx_wasm_wasmtime_call(void *data, ngx_str_t *name, bool has_result, int param_t
 }
 
 
+static bool
+ngx_wasm_wasmtime_has(void *data, ngx_str_t *name)
+{
+    ngx_wasm_wasmtime_plugin_t *plugin = data;
+    wasmtime_extern_t           func;
+
+    return wasmtime_instance_export_get(plugin->context, &plugin->instance,
+                                        (const char *) name->data, name->len, &func);
+}
+
+
 u_char *
 ngx_wasm_wasmtime_get_memory(ngx_log_t *log, int32_t addr, int32_t size)
 {
@@ -349,4 +360,5 @@ ngx_wasm_vm_t ngx_wasm_vm = {
     ngx_wasm_wasmtime_get_memory,
     ngx_wasm_wasmtime_malloc,
     ngx_wasm_wasmtime_call,
+    ngx_wasm_wasmtime_has,
 };

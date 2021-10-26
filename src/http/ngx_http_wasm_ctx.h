@@ -6,9 +6,16 @@
 #include "ngx_http_wasm_state.h"
 
 
+#define PROXY_WASM_ABI_VER_010      0
+#define PROXY_WASM_ABI_VER_020      1
+#define PROXY_WASM_ABI_VER_021      2
+#define PROXY_WASM_ABI_VER_MAX      99
+
+
 typedef struct {
     void                  *plugin;
     uint32_t               cur_ctx_id;
+    uint32_t               abi_version;
     ngx_str_t              name;
     ngx_http_wasm_state_t *state;
     ngx_queue_t            occupied;
