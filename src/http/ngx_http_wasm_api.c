@@ -107,6 +107,14 @@ proxy_get_property(int32_t path_data, int32_t path_size,
 
 
 int32_t
+proxy_set_property(int32_t path_data, int32_t path_size,
+                   int32_t data, int32_t size)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
 proxy_log(int32_t log_level, int32_t addr, int32_t size)
 {
     const u_char       *p;
@@ -182,6 +190,14 @@ proxy_get_buffer_bytes(int32_t type, int32_t start, int32_t length,
 
 
 int32_t
+proxy_set_buffer_bytes(int32_t type, int32_t start, int32_t length,
+                       int32_t addr, int32_t size_addr)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
 proxy_send_http_response(int32_t res_code,
                          int32_t res_code_details_data, int32_t res_code_details_size,
                          int32_t body, int32_t body_size,
@@ -219,5 +235,220 @@ proxy_send_http_response(int32_t res_code,
         ngx_memcpy(wmcf->body.data, p, body_size);
     }
 
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_get_current_time_nanoseconds(int32_t time_addr)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_set_tick_period_milliseconds(int32_t tick)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_get_configuration(int32_t addr, int32_t size_addr)
+{
+    int32_t               len;
+    ngx_log_t            *log;
+    const u_char         *data;
+    const ngx_str_t      *conf;
+
+    log = ngx_http_wasm_get_log();
+    conf = ngx_http_wasm_get_conf();
+    data = conf->data;
+    len = conf->len;
+
+    return ngx_http_wasm_copy_to_wasm(log, data, len, addr, size_addr);
+}
+
+
+int32_t
+proxy_get_header_map_pairs(int32_t type, int32_t addr, int32_t size)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_set_header_map_pairs(int32_t type, int32_t data, int32_t size)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_get_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
+                           int32_t addr, int32_t size)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_remove_header_map_value(int32_t type, int32_t key_data, int32_t key_size)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_replace_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
+                               int32_t data, int32_t size)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_add_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
+                           int32_t data, int32_t size)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_get_shared_data(int32_t key_data, int32_t key_size,
+                      int32_t addr, int32_t size,
+                      int32_t cas)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_set_shared_data(int32_t key_data, int32_t key_size,
+                      int32_t data, int32_t size,
+                      int32_t cas)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_register_shared_queue(int32_t data, int32_t size, int32_t id)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_resolve_shared_queue(int32_t vm_id_data, int32_t vm_id_size,
+                           int32_t name_data, int32_t name_size,
+                           int32_t return_id)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_dequeue_shared_queue(int32_t id, int32_t addr, int32_t size)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_enqueue_shared_queue(int32_t id, int32_t addr, int32_t size)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_continue_request(void)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_continue_response(void)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_clear_route_cache(void)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_http_call(int32_t up_data, int32_t up_size,
+                int32_t headers_data, int32_t headers_size,
+                int32_t body_data, int32_t body_size,
+                int32_t trailer_data, int32_t trailer_size,
+                int32_t timeout, int32_t callout_addr)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_grpc_call(int32_t service_data, int32_t service_size,
+                int32_t service_name_data, int32_t service_name_size,
+                int32_t method_data, int32_t method_size,
+                int32_t metadata_data, int32_t metadata_size,
+                int32_t request_data, int32_t request_size,
+                int32_t timeout, int32_t callout_addr)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_grpc_stream(int32_t service_data, int32_t service_size,
+                  int32_t service_name_data, int32_t service_name_size,
+                  int32_t method_data, int32_t method_size,
+                  int32_t metadata_data, int32_t metadata_size,
+                  int32_t callout_addr)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_grpc_send(int32_t id, int32_t message_data, int32_t message_size,
+                int32_t end_of_stream)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_grpc_cancel(int32_t id)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_grpc_close(int32_t id)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_get_status(int32_t code, int32_t addr, int32_t size)
+{
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_done(void)
+{
     return PROXY_RESULT_OK;
 }

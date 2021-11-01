@@ -21,6 +21,14 @@ jobs:
         with:
           node-version: 10.0.0
 
+      - name: Install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-wasi
+          default: true
+          override: true
+
       - name: Get dependencies
         run: |
           sudo apt install -y cpanminus build-essential libncurses5-dev libreadline-dev libssl-dev perl luarocks
@@ -42,6 +50,10 @@ jobs:
 
       - name: Script
         run: |
-          sudo make build.all.testdata
+          sudo make build.go.testdata
+
+          pushd ./t/testdata/assemblyscript && npm install && npm run asbuild && popd
+          pushd ./t/testdata/rust && cargo build --target=wasm32-wasi && popd
+
           export PATH=$OPENRESTY_PREFIX/nginx/sbin:$PATH
           prove -I. -Itest-nginx/lib -r t/

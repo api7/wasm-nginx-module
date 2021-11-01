@@ -80,6 +80,7 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
     wasmtime_module_t            *module;
     wasmtime_store_t             *store;
     wasmtime_context_t           *context;
+    wasmtime_linker_t            *linker;
     wasi_config_t                *wasi_config;
     wasmtime_error_t             *error;
     ngx_wasm_wasmtime_plugin_t   *plugin;
@@ -113,7 +114,7 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
         goto free_store;
     }
 
-    wasmtime_linker_t *linker = wasmtime_linker_new(vm_engine);
+    linker = wasmtime_linker_new(vm_engine);
     if (linker == NULL) {
         goto free_store;
     }
@@ -139,7 +140,7 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
         wasm_functype_delete(f);
 
         if (error != NULL) {
-            ngx_wasm_wasmtime_report_error(ngx_cycle->log, "failed to define API", error, NULL);
+            ngx_wasm_wasmtime_report_error(ngx_cycle->log, "failed to define API ", error, NULL);
             goto free_linker;
         }
     }
@@ -327,8 +328,7 @@ ngx_wasm_wasmtime_malloc(ngx_log_t *log, int32_t size)
     bool                        found;
 
     found = wasmtime_instance_export_get(cur_plugin->context, &cur_plugin->instance,
-                                         "malloc", 6, &func);
-                                         //"proxy_on_memory_allocate", 24, &func);
+                                         "proxy_on_memory_allocate", 24, &func);
     if (!found) {
         found = wasmtime_instance_export_get(cur_plugin->context, &cur_plugin->instance,
                                              "malloc", 6, &func);
