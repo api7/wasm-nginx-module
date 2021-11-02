@@ -35,6 +35,7 @@ to setup and/or initialize state, but no proxy_ functions can be used at that po
   - `i32 (void*) allocated_ptr`
 
 Allocates memory using in-VM memory allocator and returns it to the host.
+We also implement `malloc` as an alias of this function.
 
 
 ## Module lifecycle
@@ -144,7 +145,8 @@ buffer slice (`return_buffer_data`, `return_buffer_size`), and buffer flags are 
 `return_flags`.
 
 Note: we implement `proxy_get_buffer_bytes` (an older version of `proxy_get_buffer`) instead
-because proxy-wasm-go-sdk uses it.
+because proxy-wasm-go-sdk uses it. We also implement `proxy_get_configuration` to get
+configuration separately because proxy-wasm-rust-sdk still uses it.
 
 `proxy_get_buffer_bytes`
 

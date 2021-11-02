@@ -1,0 +1,16 @@
+[package]
+name = "fault-injection"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+path = "./fault_injection.rs"
+
+[dependencies]
+log = "0.4"
+proxy-wasm = "0.1"
+rand = "0.8.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_derive = { version = "1.0", default-features = false }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
