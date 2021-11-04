@@ -1,6 +1,6 @@
 ## Status
 
-This library is under construction.
+This library is under construction. See https://github.com/api7/wasm-nginx-module/issues/25 to know the progress.
 
 ## Description
 
