@@ -337,6 +337,7 @@ ngx_http_wasm_on_configure(ngx_http_wasm_plugin_t *hw_plugin, const char *conf, 
         q = ngx_queue_last(&hw_plugin->free);
         ngx_queue_remove(q);
         hwp_ctx = ngx_queue_data(q, ngx_http_wasm_plugin_ctx_t, queue);
+        hwp_ctx->done = 0;
         ctx_id = hwp_ctx->id;
 
     } else {
