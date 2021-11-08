@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  lua:
+  lint:
     runs-on: "ubuntu-18.04"
 
     steps:
