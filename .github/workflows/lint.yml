@@ -21,4 +21,4 @@ jobs:
 
       - name: Script
         run: |
-          luacheck .
+          make lint
