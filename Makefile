@@ -18,3 +18,16 @@ build.testdata:
 build.all.testdata: build.go.testdata
 	@cd ./t/testdata/assemblyscript && npm install && npm run asbuild
 	@cd ./t/testdata/rust &&  cargo build --target=wasm32-wasi
+
+.PHONY: utils
+utils:
+ifeq ("$(wildcard utils/reindex)", "")
+	wget -P utils https://raw.githubusercontent.com/iresty/openresty-devel-utils/master/reindex
+	chmod a+x utils/reindex
+endif
+
+
+.PHONY: lint
+lint: utils
+	luacheck .
+	./utils/check-test-code-style.sh
