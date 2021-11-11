@@ -336,6 +336,7 @@ static ngx_wasm_host_api_t host_apis[] = {
 
 
 wasm_functype_t *ngx_http_wasm_host_api_func(const ngx_wasm_host_api_t *api);
+ngx_int_t ngx_http_wasm_resolve_symbol(void);
 
 
 #endif // NGX_HTTP_WASM_API_H

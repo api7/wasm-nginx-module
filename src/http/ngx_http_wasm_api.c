@@ -1,7 +1,16 @@
+#define _GNU_SOURCE /* for RTLD_DEFAULT */
+#include <dlfcn.h>
 #include "vm/vm.h"
 #include "ngx_http_wasm_api.h"
 #include "ngx_http_wasm_module.h"
 #include "ngx_http_wasm_state.h"
+#include "ngx_http_wasm_map.h"
+
+
+static int (*set_resp_header) (ngx_http_request_t *r,
+    const char *key_data, size_t key_len, int is_nil,
+    const char *sval, size_t sval_len, ngx_str_t *mvals,
+    size_t mvals_len, int override, char **errmsg);
 
 
 wasm_functype_t *
@@ -30,6 +39,25 @@ ngx_http_wasm_host_api_func(const ngx_wasm_host_api_t *api)
     wasm_valtype_delete(result[0]);
 
     return f;
+}
+
+
+ngx_int_t
+ngx_http_wasm_resolve_symbol(void)
+{
+    char        *err;
+
+    dlerror();    /* Clear any existing error */
+
+    set_resp_header = dlsym(RTLD_DEFAULT, "ngx_http_lua_ffi_set_resp_header");
+    err = dlerror();
+    if (err != NULL) {
+        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0,
+                      "failed to resolve symbol: %s", err);
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
 }
 
 
@@ -217,9 +245,36 @@ proxy_send_http_response(int32_t res_code,
     log = r->connection->log;
 
     wmcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
-    /* TODO handle other args */
     wmcf->code = res_code;
     wmcf->body.len = body_size;
+
+    if (headers_size > 0) {
+        char               *errmsg = NULL;
+        char               *key, *val;
+        int32_t             key_len, val_len;
+        ngx_int_t           rc;
+        proxy_wasm_map_iter it;
+
+        p = ngx_wasm_vm.get_memory(log, headers, headers_size);
+        if (p == NULL) {
+            return PROXY_RESULT_INVALID_MEMORY_ACCESS;
+        }
+
+        ngx_http_wasm_map_init_iter(&it, p);
+        while (ngx_http_wasm_map_next(&it, &key, &key_len, &val, &val_len)) {
+            rc = set_resp_header(r, key, key_len, 0, val, val_len, NULL, 0,
+                                 0, &errmsg);
+            if (rc != NGX_OK && rc != NGX_DECLINED) {
+                if (errmsg != NULL) {
+                    ngx_log_error(NGX_LOG_ERR, log, 0,
+                                  "faied to set header %*s to %*s: %s",
+                                  key_len, key, val_len, val, errmsg);
+                }
+
+                return PROXY_RESULT_BAD_ARGUMENT;
+            }
+        }
+    }
 
     if (body_size > 0) {
         p = ngx_wasm_vm.get_memory(log, body, body_size);

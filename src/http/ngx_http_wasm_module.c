@@ -1,6 +1,7 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
+#include "ngx_http_wasm_api.h"
 #include "ngx_http_wasm_module.h"
 #include "ngx_http_wasm_state.h"
 #include "ngx_http_wasm_ctx.h"
@@ -139,6 +140,11 @@ ngx_http_wasm_init(ngx_conf_t *cf)
 
     if (ngx_process == NGX_PROCESS_SIGNALLER || ngx_test_config || ngx_http_wasm_vm_inited) {
         return NGX_OK;
+    }
+
+    rc = ngx_http_wasm_resolve_symbol();
+    if (rc != NGX_OK) {
+        return rc;
     }
 
     wmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_wasm_module);
