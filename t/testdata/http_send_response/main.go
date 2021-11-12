@@ -55,6 +55,12 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		}, []byte(body), -1)
 	} else if action == "502" {
 		err = proxywasm.SendHttpResponse(502, nil, nil, -1)
+	} else if action == "multi_hdrs" {
+		err = proxywasm.SendHttpResponse(401, [][2]string{
+			{"hello", "spacewander"},
+			{"hi", "spacewander"},
+			{"hello", "world"},
+		}, nil, -1)
 	}
 
 	if err != nil {
