@@ -28,6 +28,9 @@ ngx_str_t *ngx_http_wasm_fetch_local_body(void *r);
 
 local _M = {}
 local HTTP_REQUEST_HEADERS = 1
+--local HTTP_REQUEST_BODY = 2
+local HTTP_RESPONSE_HEADERS = 4
+--local HTTP_RESPONSE_BODY = 8
 
 
 function _M.load(name, path)
@@ -94,6 +97,25 @@ function _M.on_http_request_headers(plugin_ctx)
         end
 
         ngx.exit(rc)
+    end
+
+    return true
+end
+
+
+function _M.on_http_response_headers(plugin_ctx)
+    if type(plugin_ctx) ~= "cdata" then
+        return nil, "bad plugin ctx"
+    end
+
+    local r = get_request()
+    if not r then
+        return nil, "bad request"
+    end
+
+    local rc = C.ngx_http_wasm_on_http(plugin_ctx, r, HTTP_RESPONSE_HEADERS)
+    if rc < 0 then
+        return nil, "failed to run proxy_on_http_response_headers"
     end
 
     return true

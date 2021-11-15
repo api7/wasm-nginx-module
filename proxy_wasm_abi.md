@@ -104,6 +104,20 @@ Called when HTTP request headers are received from the client. TODO: Headers can
 
 TODO: pass a correct `num_headers` but not 0.
 
+### `proxy_on_response_headers`
+
+* params:
+  - `i32 (uint32_t) context_id`
+  - `i32 (size_t) num_headers`
+  - `i32 (bool) end_of_stream`
+* returns:
+  - `i32 (proxy_action_t) next_action`
+
+Called when HTTP response headers are received from the upstream. TODO: Headers can be retrieved using
+`proxy_get_map` and/or `proxy_get_map_value`.
+
+TODO: pass a correct `num_headers` but not 0.
+
 
 # Functions implemented in the host environment
 

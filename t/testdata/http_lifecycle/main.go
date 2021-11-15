@@ -45,6 +45,25 @@ func (ctx *httpLifecycle) OnHttpRequestHeaders(numHeaders int, endOfStream bool)
 		return types.ActionContinue
 	}
 
-	proxywasm.LogWarnf("run http ctx %d with conf %s", ctx.contextID, string(data))
+	proxywasm.LogWarnf("run http ctx %d with conf %s on http request headers",
+		ctx.contextID, string(data))
+	return types.ActionContinue
+}
+
+func (ctx *httpLifecycle) OnHttpResponseHeaders(numHeaders int, endOfStream bool) types.Action {
+	data, err := proxywasm.GetPluginConfiguration()
+	if err != nil {
+		proxywasm.LogCriticalf("error reading plugin configuration: %v", err)
+		return types.ActionContinue
+	}
+
+	action := string(data)
+
+	if action == "panic_on_http_response_headers" {
+		panic("OUCH")
+	}
+
+	proxywasm.LogWarnf("run http ctx %d with conf %s on http response headers",
+		ctx.contextID, string(data))
 	return types.ActionContinue
 }

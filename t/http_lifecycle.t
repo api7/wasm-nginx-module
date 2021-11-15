@@ -105,10 +105,10 @@ location /t {
     }
 }
 --- grep_error_log eval
-qr/run http ctx \d+ with conf \S+/
+qr/run http ctx \d+ with conf \S+ on http request headers,/
 --- grep_error_log_out
-run http ctx 3 with conf {"body":512},
-run http ctx 4 with conf {"body":256},
+run http ctx 3 with conf {"body":512} on http request headers,
+run http ctx 4 with conf {"body":256} on http request headers,
 
 
 
@@ -126,7 +126,53 @@ location /t {
     }
 }
 --- grep_error_log eval
-qr/run http ctx \d+ with conf \S+/
+qr/run http ctx \d+ with conf \S+ on http request headers,/
 --- grep_error_log_out
-run http ctx 2 with conf {"body":512},
-run http ctx 2 with conf {"body":256},
+run http ctx 2 with conf {"body":512} on http request headers,
+run http ctx 2 with conf {"body":256} on http request headers,
+
+
+
+=== TEST 6: on reponse headers
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_lifecycle/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
+        ngx.ctx.ctx = ctx
+        assert(wasm.on_http_request_headers(ctx))
+    }
+    header_filter_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local ctx = ngx.ctx.ctx
+        assert(wasm.on_http_response_headers(ctx))
+    }
+}
+--- grep_error_log eval
+qr/run http ctx \d+ with conf \S+ on [^,]+,/
+--- grep_error_log_out
+run http ctx 2 with conf {"body":512} on http request headers,
+run http ctx 2 with conf {"body":512} on http response headers,
+
+
+
+=== TEST 7: crash on reponse headers
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_lifecycle/main.go.wasm"))
+        ngx.ctx.plugin = plugin
+    }
+    header_filter_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = ngx.ctx.plugin
+        local ctx = assert(wasm.on_configure(plugin, 'panic_on_http_response_headers'))
+        local ok, err = wasm.on_http_response_headers(ctx)
+        ngx.log(ngx.ERR, err)
+    }
+}
+--- error_log
+failed to call function
+failed to run proxy_on_http_response_headers
