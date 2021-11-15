@@ -42,6 +42,10 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 
 	if action == "resp_hdr_add" {
 		proxywasm.AddHttpResponseHeader("add", "bar")
+	} else if action == "resp_hdr_set" {
+		proxywasm.ReplaceHttpResponseHeader("add", "bar")
+	} else if action == "resp_hdr_set_empty" {
+		proxywasm.ReplaceHttpResponseHeader("add", "")
 	}
 
 	return types.ActionContinue

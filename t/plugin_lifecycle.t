@@ -191,3 +191,18 @@ location /t {
 }
 --- shutdown_error_log
 failed to mark context 1 as done
+
+
+
+=== TEST 9: empty configure
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = wasm.load("plugin", "t/testdata/plugin_lifecycle/main.go.wasm")
+        local _, err = wasm.on_configure(plugin, '')
+        ngx.say(err)
+    }
+}
+--- response_body
+bad conf
