@@ -4,6 +4,16 @@
 #include <ngx_core.h>
 
 
+typedef enum {
+  PROXY_MAP_TYPE_HTTP_REQUEST_HEADERS = 0,
+  PROXY_MAP_TYPE_HTTP_REQUEST_TRAILERS = 1,
+  PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS = 2,
+  PROXY_MAP_TYPE_HTTP_RESPONSE_TRAILERS = 3,
+  PROXY_MAP_TYPE_HTTP_CALL_RESPONSE_HEADERS = 6,
+  PROXY_MAP_TYPE_HTTP_CALL_RESPONSE_TRAILERS = 7,
+} proxy_map_type_t;
+
+
 typedef struct {
     int32_t  idx;
     int32_t  len;
