@@ -174,7 +174,22 @@ configuration separately because proxy-wasm-rust-sdk still uses it.
   - `i32 (proxy_result_t) call_result`
 
 
-### `proxy_add_map_value`
+### `proxy_set_map_value` (`proxy_replace_header_map_value`)
+
+* params:
+  - `i32 (proxy_map_type_t) map_type`
+  - `i32 (const char*) key_data`
+  - `i32 (size_t) key_size`
+  - `i32 (const char*) value_data`
+  - `i32 (size_t) value_size`
+* returns:
+  - `i32 (proxy_result_t) call_result`
+
+Set or replace the content of key (`key_data`, `key_size`) to the value (`value_data`, `value_size`)
+in a given map (`map_type`).
+
+
+### `proxy_add_map_value` (`proxy_add_header_map_value`)
 
 * params:
   - `i32 (proxy_map_type_t) map_type`
