@@ -40,12 +40,35 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 	action := string(data)
 	proxywasm.AddHttpResponseHeader("add", "foo")
 
-	if action == "resp_hdr_add" {
+	switch action {
+	case "resp_hdr_add":
 		proxywasm.AddHttpResponseHeader("add", "bar")
-	} else if action == "resp_hdr_set" {
+	case "resp_hdr_set":
 		proxywasm.ReplaceHttpResponseHeader("add", "bar")
-	} else if action == "resp_hdr_set_empty" {
+	case "resp_hdr_set_empty":
 		proxywasm.ReplaceHttpResponseHeader("add", "")
+	case "resp_hdr_get":
+		res, err := proxywasm.GetHttpResponseHeader("add")
+		if err != nil {
+			proxywasm.LogCriticalf("error get response header: %v", err)
+			return types.ActionContinue
+		}
+		proxywasm.LogWarnf("get response header: %v", res)
+	case "resp_hdr_get_miss":
+		res, err := proxywasm.GetHttpResponseHeader("")
+		if err != nil {
+			proxywasm.LogCriticalf("error get response header: %v", err)
+			return types.ActionContinue
+		}
+		proxywasm.LogWarnf("get response header: [%v]", res)
+	case "resp_hdr_get_first":
+		proxywasm.AddHttpResponseHeader("add", "bar")
+		res, err := proxywasm.GetHttpResponseHeader("add")
+		if err != nil {
+			proxywasm.LogCriticalf("error get response header: %v", err)
+			return types.ActionContinue
+		}
+		proxywasm.LogWarnf("get response header: %v", res)
 	}
 
 	return types.ActionContinue
