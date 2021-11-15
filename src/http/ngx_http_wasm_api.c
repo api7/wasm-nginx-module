@@ -7,10 +7,17 @@
 #include "ngx_http_wasm_map.h"
 
 
+#define FFI_NO_REQ_CTX  -100
+#define FFI_BAD_CONTEXT -101
+
+
 static int (*set_resp_header) (ngx_http_request_t *r,
     const char *key_data, size_t key_len, int is_nil,
     const char *sval, size_t sval_len, ngx_str_t *mvals,
     size_t mvals_len, int override, char **errmsg);
+
+static char *err_bad_ctx = "API disabled in the current context";
+static char *err_no_req_ctx = "no request ctx found";
 
 
 wasm_functype_t *
@@ -104,6 +111,37 @@ ngx_http_wasm_copy_to_wasm(ngx_log_t *log, const u_char *data, int32_t len,
 
     *p = buf_addr;
     return PROXY_RESULT_OK;
+}
+
+
+static ngx_int_t
+ngx_http_wasm_set_resp_header(ngx_http_request_t *r,
+    const char *key, size_t key_len, int is_nil,
+    const char *val, size_t val_len,
+    int override)
+{
+    char               *errmsg = NULL;
+    ngx_int_t           rc;
+
+    rc = set_resp_header(r, key, key_len, is_nil, val, val_len, NULL, 0,
+                         override, &errmsg);
+    if (rc != NGX_OK && rc != NGX_DECLINED) {
+        if (rc == FFI_BAD_CONTEXT) {
+            errmsg = err_bad_ctx;
+        } else if (rc == FFI_NO_REQ_CTX) {
+            errmsg = err_no_req_ctx;
+        }
+
+        if (errmsg != NULL) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                          "faied to set header %*s to %*s: %s",
+                          key_len, key, val_len, val, errmsg);
+        }
+
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
 }
 
 
@@ -249,7 +287,6 @@ proxy_send_http_response(int32_t res_code,
     wmcf->body.len = body_size;
 
     if (headers_size > 0) {
-        char               *errmsg = NULL;
         char               *key, *val;
         int32_t             key_len, val_len;
         ngx_int_t           rc;
@@ -262,15 +299,8 @@ proxy_send_http_response(int32_t res_code,
 
         ngx_http_wasm_map_init_iter(&it, p);
         while (ngx_http_wasm_map_next(&it, &key, &key_len, &val, &val_len)) {
-            rc = set_resp_header(r, key, key_len, 0, val, val_len, NULL, 0,
-                                 0, &errmsg);
-            if (rc != NGX_OK && rc != NGX_DECLINED) {
-                if (errmsg != NULL) {
-                    ngx_log_error(NGX_LOG_ERR, log, 0,
-                                  "faied to set header %*s to %*s: %s",
-                                  key_len, key, val_len, val, errmsg);
-                }
-
+            rc = ngx_http_wasm_set_resp_header(r, key, key_len, 0, val, val_len, 0);
+            if (rc != NGX_OK) {
                 return PROXY_RESULT_BAD_ARGUMENT;
             }
         }
@@ -366,6 +396,34 @@ int32_t
 proxy_add_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
                            int32_t data, int32_t size)
 {
+    ngx_int_t                   rc;
+    ngx_log_t                  *log;
+    ngx_http_request_t         *r;
+    char                       *key, *val;
+
+    log = ngx_http_wasm_get_log();
+    r = ngx_http_wasm_get_req();
+    if (r == NULL) {
+        return PROXY_RESULT_BAD_ARGUMENT;
+    }
+
+    key = (char *) ngx_wasm_vm.get_memory(log, key_data, key_size);
+    if (key == NULL) {
+        return PROXY_RESULT_INVALID_MEMORY_ACCESS;
+    }
+
+    val = (char *) ngx_wasm_vm.get_memory(log, data, size);
+    if (val == NULL) {
+        return PROXY_RESULT_INVALID_MEMORY_ACCESS;
+    }
+
+    if (type == PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS) {
+        rc = ngx_http_wasm_set_resp_header(r, key, key_size, 0, val, size, 0);
+        if (rc != NGX_OK) {
+            return PROXY_RESULT_BAD_ARGUMENT;
+        }
+    }
+
     return PROXY_RESULT_OK;
 }
 
