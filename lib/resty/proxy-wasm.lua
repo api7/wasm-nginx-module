@@ -61,7 +61,10 @@ function _M.on_configure(plugin, conf)
         return nil, "bad plugin"
     end
 
-    conf = conf or ""
+    if type(conf) ~= "string" or conf == "" then
+        return nil, "bad conf"
+    end
+
     local plugin_ctx = C.ngx_http_wasm_on_configure(plugin, conf, #conf)
     if plugin_ctx == nil then
         return nil, "failed to run proxy_on_configure"

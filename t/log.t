@@ -11,7 +11,7 @@ location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
         local p = wasm.load("plugin", "t/testdata/log/main.go.wasm")
-        wasm.on_configure(p)
+        wasm.on_configure(p, "blah")
     }
 }
 --- grep_error_log eval

@@ -10,6 +10,17 @@
 #define FFI_NO_REQ_CTX  -100
 #define FFI_BAD_CONTEXT -101
 
+#define must_get_memory(key, log, key_data, key_len) \
+    key = (char *) ngx_wasm_vm.get_memory((log), (key_data), (key_size)); \
+    if (key == NULL) { \
+        return PROXY_RESULT_INVALID_MEMORY_ACCESS; \
+    }
+#define must_get_req(r) \
+    r = ngx_http_wasm_get_req(); \
+    if (r == NULL) { \
+        return PROXY_RESULT_BAD_ARGUMENT; \
+    }
+
 
 static int (*set_resp_header) (ngx_http_request_t *r,
     const char *key_data, size_t key_len, int is_nil,
@@ -388,6 +399,23 @@ int32_t
 proxy_replace_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
                                int32_t data, int32_t size)
 {
+    ngx_int_t                   rc;
+    ngx_log_t                  *log;
+    ngx_http_request_t         *r;
+    char                       *key, *val;
+
+    log = ngx_http_wasm_get_log();
+    must_get_req(r);
+    must_get_memory(key, log, key_data, key_len);
+    must_get_memory(val, log, data, size);
+
+    if (type == PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS) {
+        rc = ngx_http_wasm_set_resp_header(r, key, key_size, 0, val, size, 1);
+        if (rc != NGX_OK) {
+            return PROXY_RESULT_BAD_ARGUMENT;
+        }
+    }
+
     return PROXY_RESULT_OK;
 }
 
@@ -402,20 +430,9 @@ proxy_add_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
     char                       *key, *val;
 
     log = ngx_http_wasm_get_log();
-    r = ngx_http_wasm_get_req();
-    if (r == NULL) {
-        return PROXY_RESULT_BAD_ARGUMENT;
-    }
-
-    key = (char *) ngx_wasm_vm.get_memory(log, key_data, key_size);
-    if (key == NULL) {
-        return PROXY_RESULT_INVALID_MEMORY_ACCESS;
-    }
-
-    val = (char *) ngx_wasm_vm.get_memory(log, data, size);
-    if (val == NULL) {
-        return PROXY_RESULT_INVALID_MEMORY_ACCESS;
-    }
+    must_get_req(r);
+    must_get_memory(key, log, key_data, key_len);
+    must_get_memory(val, log, data, size);
 
     if (type == PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS) {
         rc = ngx_http_wasm_set_resp_header(r, key, key_size, 0, val, size, 0);
