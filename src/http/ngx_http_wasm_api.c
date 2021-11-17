@@ -455,6 +455,22 @@ proxy_get_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
 int32_t
 proxy_remove_header_map_value(int32_t type, int32_t key_data, int32_t key_size)
 {
+    ngx_int_t                   rc;
+    ngx_log_t                  *log;
+    ngx_http_request_t         *r;
+    char                       *key;
+
+    log = ngx_http_wasm_get_log();
+    must_get_req(r);
+    must_get_memory(key, log, key_data, key_size);
+
+    if (type == PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS) {
+        rc = ngx_http_wasm_set_resp_header(r, key, key_size, 1, NULL, 0, 1);
+        if (rc != NGX_OK) {
+            return PROXY_RESULT_BAD_ARGUMENT;
+        }
+    }
+
     return PROXY_RESULT_OK;
 }
 

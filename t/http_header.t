@@ -107,3 +107,51 @@ add: foo, bar
 qr/get response header: \S+/
 --- grep_error_log_out
 get response header: foo,
+
+
+
+=== TEST 7: response header delete
+--- config
+location /t {
+    return 200;
+    header_filter_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'resp_hdr_del'))
+        assert(wasm.on_http_response_headers(ctx))
+    }
+}
+--- response_headers
+add:
+
+
+
+=== TEST 8: response header delete all
+--- config
+location /t {
+    return 200;
+    header_filter_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'resp_hdr_del_all'))
+        assert(wasm.on_http_response_headers(ctx))
+    }
+}
+--- response_headers
+add:
+
+
+
+=== TEST 9: response header delete miss
+--- config
+location /t {
+    return 200;
+    header_filter_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'resp_hdr_del_miss'))
+        assert(wasm.on_http_response_headers(ctx))
+    }
+}
+--- response_headers
+add: foo

@@ -218,6 +218,18 @@ Add key (`key_data`, `key_size`) with the value (`value_data`, `value_size`) to 
 (`map_type`).
 
 
+### `proxy_remove_map_value` (`proxy_remove_header_map_value`)
+
+* params:
+  - `i32 (proxy_map_type_t) map_type`
+  - `i32 (const char*) key_data`
+  - `i32 (size_t) key_size`
+* returns:
+  - `i32 (proxy_result_t) call_result`
+
+Remove key (`key_data`, `key_size`) from a given map (`map_type`).
+
+
 ## HTTP (L7) extensions
 
 ### `proxy_send_http_response`
