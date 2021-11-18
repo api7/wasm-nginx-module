@@ -312,11 +312,7 @@ proxy_send_http_response(int32_t res_code,
     ngx_log_t                  *log;
     const u_char               *p;
 
-    r = ngx_http_wasm_get_req();
-    if (r == NULL) {
-        return PROXY_RESULT_BAD_ARGUMENT;
-    }
-
+    must_get_req(r);
     log = r->connection->log;
 
     wmcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
