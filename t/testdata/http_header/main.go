@@ -47,6 +47,13 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 		proxywasm.ReplaceHttpResponseHeader("add", "bar")
 	case "resp_hdr_set_empty":
 		proxywasm.ReplaceHttpResponseHeader("add", "")
+	case "resp_hdr_del":
+		proxywasm.RemoveHttpResponseHeader("add")
+	case "resp_hdr_del_all":
+		proxywasm.AddHttpResponseHeader("add", "bar")
+		proxywasm.RemoveHttpResponseHeader("add")
+	case "resp_hdr_del_miss":
+		proxywasm.RemoveHttpResponseHeader("aa")
 	case "resp_hdr_get":
 		res, err := proxywasm.GetHttpResponseHeader("add")
 		if err != nil {
