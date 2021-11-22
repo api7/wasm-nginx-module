@@ -112,6 +112,7 @@ ngx_http_wasm_copy_to_wasm(ngx_log_t *log, const u_char *data, int32_t len,
 
     buf_addr = ngx_wasm_vm.malloc(log, len);
     if (buf_addr == 0) {
+        ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
         return PROXY_RESULT_INTERNAL_FAILURE;
     }
 
@@ -129,6 +130,44 @@ ngx_http_wasm_copy_to_wasm(ngx_log_t *log, const u_char *data, int32_t len,
 
     *p = buf_addr;
     return PROXY_RESULT_OK;
+}
+
+
+static u_char *
+ngx_http_wasm_get_buf_to_write(ngx_log_t *log, int32_t len,
+                               int32_t addr, int32_t size_addr)
+{
+    int32_t         buf_addr;
+    int32_t        *p_size;
+    int32_t        *p;
+    u_char         *buf;
+
+    buf_addr = ngx_wasm_vm.malloc(log, len);
+    if (buf_addr == 0) {
+        ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
+        return NULL;
+    }
+
+    buf = (u_char *) ngx_wasm_vm.get_memory(log, buf_addr, len);
+    if (buf == NULL) {
+        return NULL;
+    }
+
+    p = (int32_t *) ngx_wasm_vm.get_memory(log, addr, sizeof(int32_t));
+    if (p == NULL) {
+        return NULL;
+    }
+
+    *p = buf_addr;
+
+    p_size = (int32_t *) ngx_wasm_vm.get_memory(log, size_addr, sizeof(int32_t));
+    if (p_size == NULL) {
+        return NULL;
+    }
+
+    *p_size = len;
+
+    return buf;
 }
 
 
@@ -389,8 +428,156 @@ proxy_get_configuration(int32_t addr, int32_t size_addr)
 
 
 int32_t
-proxy_get_header_map_pairs(int32_t type, int32_t addr, int32_t size)
+proxy_get_header_map_pairs(int32_t type, int32_t addr, int32_t size_addr)
 {
+    int                  count = 0;
+    int                  size = 0;
+    ngx_uint_t           i;
+    u_char              *content_length_hdr = NULL;
+    u_char               content_length_hdr_len = 0;
+    char                *lowcase_key;
+    char                *val;
+    ngx_list_part_t     *part;
+    ngx_table_elt_t     *header;
+    ngx_http_request_t  *r;
+    ngx_log_t           *log;
+    u_char              *buf;
+    proxy_wasm_map_iter  it;
+
+    must_get_req(r);
+    log = r->connection->log;
+
+    part = &r->headers_out.headers.part;
+    header = part->elts;
+
+    /* count the size */
+    for (i = 0; /* void */; i++) {
+
+        if (i >= part->nelts) {
+            if (part->next == NULL) {
+                break;
+            }
+
+            part = part->next;
+            header = part->elts;
+            i = 0;
+        }
+
+        if (header[i].hash == 0) {
+            continue;
+        }
+
+        count++;
+        /* proxy_map_t appends '\0' after each entry */
+        size += header[i].key.len + header[i].value.len + 2;
+    }
+
+    if (r->headers_out.content_type.len) {
+        count++;
+        size += sizeof("content-type") + r->headers_out.content_type.len + 1;
+    }
+
+    if (r->headers_out.content_length == NULL
+        && r->headers_out.content_length_n >= 0)
+    {
+        count++;
+        content_length_hdr = ngx_palloc(r->pool, NGX_OFF_T_LEN);
+        if (content_length_hdr == NULL) {
+            ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
+            return PROXY_RESULT_INTERNAL_FAILURE;
+        }
+
+        content_length_hdr_len = ngx_snprintf(content_length_hdr, NGX_OFF_T_LEN, "%O",
+                                              r->headers_out.content_length_n) - content_length_hdr;
+
+        size += sizeof("content-length") + content_length_hdr_len + 1;
+    }
+
+    count++; /* for connection header */
+    size += sizeof("content-length");
+    if (r->headers_out.status == NGX_HTTP_SWITCHING_PROTOCOLS) {
+        size += sizeof("upgrade");
+
+    } else if (r->keepalive) {
+        size += sizeof("keep-alive");
+
+    } else {
+        size += sizeof("close");
+    }
+
+    if (r->chunked) {
+        count++;
+        size += sizeof("transfer-encoding") + sizeof("chunked");
+    }
+
+    size += 4 + count * 2 * 4;
+    buf = ngx_http_wasm_get_buf_to_write(log, size, addr, size_addr);
+    if (buf == NULL) {
+        return PROXY_RESULT_INVALID_MEMORY_ACCESS;
+    }
+
+    /* get the data */
+    ngx_http_wasm_map_init_map(buf, count);
+    ngx_http_wasm_map_init_iter(&it, buf);
+
+    for (i = 0; /* void */; i++) {
+
+        if (i >= part->nelts) {
+            if (part->next == NULL) {
+                break;
+            }
+
+            part = part->next;
+            header = part->elts;
+            i = 0;
+        }
+
+        if (header[i].hash == 0) {
+            continue;
+        }
+
+        count++;
+
+        /* nginx does not even bother initializing output header entry's
+         * "lowcase_key" field. so we cannot count on that at all. */
+        ngx_http_wasm_map_reserve(&it, &lowcase_key, header[i].key.len,
+                                  &val, header[i].value.len);
+        ngx_strlow((u_char *) lowcase_key, header[i].key.data, header[i].key.len);
+        ngx_memcpy(val, header[i].value.data, header[i].value.len);
+
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm response header: \"%V: %V\"",
+                       &header[i].key, &header[i].value);
+    }
+
+    if (r->headers_out.content_type.len) {
+        ngx_http_wasm_map_reserve(&it, &lowcase_key, sizeof("content-type") - 1,
+                                  &val, r->headers_out.content_type.len);
+        ngx_memcpy(lowcase_key, "content-type", sizeof("content-type") - 1);
+        ngx_memcpy(val, r->headers_out.content_type.data, r->headers_out.content_type.len);
+    }
+
+    if (content_length_hdr != NULL) {
+        ngx_http_wasm_map_reserve(&it, &lowcase_key, sizeof("content-length") - 1,
+                                  &val, content_length_hdr_len);
+        ngx_memcpy(lowcase_key, "content-length", sizeof("content-length") - 1);
+        ngx_memcpy(val, content_length_hdr, content_length_hdr_len);
+    }
+
+    if (r->headers_out.status == NGX_HTTP_SWITCHING_PROTOCOLS) {
+        ngx_http_wasm_map_reserve_literal(&it, "connection", "upgrade");
+
+    } else if (r->keepalive) {
+        ngx_http_wasm_map_reserve_literal(&it, "connection", "keep-alive");
+
+    } else {
+        ngx_http_wasm_map_reserve_literal(&it, "connection", "close");
+    }
+
+    if (r->chunked) {
+        ngx_http_wasm_map_reserve_literal(&it, "transfer-encoding", "chunked");
+    }
+
     return PROXY_RESULT_OK;
 }
 
