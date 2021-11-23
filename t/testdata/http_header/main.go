@@ -30,10 +30,38 @@ type httpContext struct {
 	contextID uint32
 }
 
+func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) types.Action {
+	data, err := proxywasm.GetPluginConfiguration()
+	if err != nil {
+		proxywasm.LogErrorf("error reading plugin configuration: %v", err)
+		return types.ActionContinue
+	}
+
+	action := string(data)
+	switch action {
+	case "req_hdr_get":
+		res, err := proxywasm.GetHttpRequestHeader("X-API")
+		if err != nil {
+			proxywasm.LogErrorf("error get request header: %v", err)
+			return types.ActionContinue
+		}
+		proxywasm.LogWarnf("get request header: %v", res)
+	case "req_hdr_get_caseless":
+		res, err := proxywasm.GetHttpRequestHeader("x_api")
+		if err != nil {
+			proxywasm.LogErrorf("error get request header: %v", err)
+			return types.ActionContinue
+		}
+		proxywasm.LogWarnf("get request header: %v", res)
+	}
+
+	return types.ActionContinue
+}
+
 func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) types.Action {
 	data, err := proxywasm.GetPluginConfiguration()
 	if err != nil {
-		proxywasm.LogCriticalf("error reading plugin configuration: %v", err)
+		proxywasm.LogErrorf("error reading plugin configuration: %v", err)
 		return types.ActionContinue
 	}
 
@@ -41,7 +69,7 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 	if action == "resp_hdr_get_all" {
 		hdrs, err := proxywasm.GetHttpResponseHeaders()
 		if err != nil {
-			proxywasm.LogCriticalf("error getting headers: %v", err)
+			proxywasm.LogErrorf("error getting headers: %v", err)
 			return types.ActionContinue
 		}
 
@@ -70,14 +98,14 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 	case "resp_hdr_get":
 		res, err := proxywasm.GetHttpResponseHeader("add")
 		if err != nil {
-			proxywasm.LogCriticalf("error get response header: %v", err)
+			proxywasm.LogErrorf("error get response header: %v", err)
 			return types.ActionContinue
 		}
 		proxywasm.LogWarnf("get response header: %v", res)
 	case "resp_hdr_get_miss":
 		res, err := proxywasm.GetHttpResponseHeader("")
 		if err != nil {
-			proxywasm.LogCriticalf("error get response header: %v", err)
+			proxywasm.LogErrorf("error get response header: %v", err)
 			return types.ActionContinue
 		}
 		proxywasm.LogWarnf("get response header: [%v]", res)
@@ -85,7 +113,7 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 		proxywasm.AddHttpResponseHeader("add", "bar")
 		res, err := proxywasm.GetHttpResponseHeader("add")
 		if err != nil {
-			proxywasm.LogCriticalf("error get response header: %v", err)
+			proxywasm.LogErrorf("error get response header: %v", err)
 			return types.ActionContinue
 		}
 		proxywasm.LogWarnf("get response header: %v", res)
