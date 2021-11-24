@@ -589,46 +589,135 @@ proxy_set_header_map_pairs(int32_t type, int32_t data, int32_t size)
 }
 
 
+static int32_t
+ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size,
+                             int32_t addr, int32_t size)
+{
+    ngx_log_t           *log;
+    ngx_uint_t           i;
+    ngx_list_part_t     *part;
+    ngx_table_elt_t     *header;
+    unsigned char       *key_buf = NULL;
+    const u_char        *val = NULL;
+    int32_t              val_len = 0;
+
+    log = r->connection->log;
+    part = &r->headers_in.headers.part;
+    header = part->elts;
+
+    /* if '-' is given, we need to compare with a copy */
+    if (memchr(key, '_', key_size) != NULL) {
+        key_buf = ngx_alloc(key_size, log);
+        if (key_buf == NULL) {
+            ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
+            return PROXY_RESULT_INTERNAL_FAILURE;
+        }
+
+        for (i = 0; i < (ngx_uint_t) key_size; i++) {
+            if (key[i] == '_') {
+                key_buf[i] = '-';
+
+            } else {
+                key_buf[i] = key[i];
+            }
+        }
+
+    } else {
+        key_buf = (u_char *) key;
+    }
+
+    for (i = 0; /* void */ ; i++) {
+
+        if (i >= part->nelts) {
+            if (part->next == NULL) {
+                break;
+            }
+
+            part = part->next;
+            header = part->elts;
+            i = 0;
+        }
+
+        if (header[i].hash == 0) {
+            continue;
+        }
+
+        if ((size_t) key_size != header[i].key.len) {
+            continue;
+        }
+
+        if (ngx_strncasecmp(key_buf, header[i].key.data, header[i].key.len) == 0) {
+            val = header[i].value.data;
+            val_len = header[i].value.len;
+            break;
+        }
+    }
+
+    if (key_buf != (u_char *) key) {
+        ngx_free(key_buf);
+    }
+
+    return ngx_http_wasm_copy_to_wasm(log, val, val_len, addr, size);
+}
+
+
+static int32_t
+ngx_http_wasm_resp_get_header(ngx_http_request_t *r, char *key,  int32_t key_size,
+                              int32_t addr, int32_t size)
+{
+    ngx_int_t            rc;
+    char                *errmsg = NULL;
+    ngx_log_t           *log;
+    unsigned char       *key_buf;
+    ngx_str_t           *values;
+
+
+    log = r->connection->log;
+
+    key_buf = ngx_http_wasm_get_string_buf(r->pool, key_size + sizeof(ngx_str_t));
+    values = (ngx_str_t *) (key_buf + key_size);
+    rc = get_resp_header(r, (unsigned char *) key, key_size, key_buf, values, 1, &errmsg);
+    if (rc < 0) {
+        if (rc == FFI_BAD_CONTEXT) {
+            errmsg = err_bad_ctx;
+        }
+
+        if (errmsg != NULL) {
+            ngx_log_error(NGX_LOG_ERR, log, 0, "failed to get response header %*s: %s",
+                          key_size, key, errmsg);
+        }
+
+        return PROXY_RESULT_BAD_ARGUMENT;
+    }
+
+    if (rc == 0) {
+        /* not found */
+        return ngx_http_wasm_copy_to_wasm(log, NULL, 0, addr, size);
+    }
+
+    return ngx_http_wasm_copy_to_wasm(log, values->data, values->len, addr, size);
+}
+
+
 int32_t
 proxy_get_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
                            int32_t addr, int32_t size)
 {
-    ngx_int_t                   rc;
-    ngx_log_t                  *log;
     ngx_http_request_t         *r;
     char                       *key;
-    char                       *errmsg = NULL;
 
-    log = ngx_http_wasm_get_log();
     must_get_req(r);
-    must_get_memory(key, log, key_data, key_size);
+    must_get_memory(key, r->connection->log, key_data, key_size);
 
-    if (type == PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS) {
-        unsigned char       *key_buf;
-        ngx_str_t           *values;
+    switch (type) {
+    case PROXY_MAP_TYPE_HTTP_REQUEST_HEADERS:
+        return ngx_http_wasm_req_get_header(r, key, key_size, addr, size);
 
-        key_buf = ngx_http_wasm_get_string_buf(r->pool, key_size + sizeof(ngx_str_t));
-        values = (ngx_str_t *) (key_buf + key_size);
-        rc = get_resp_header(r, (unsigned char *) key, key_size, key_buf, values, 1, &errmsg);
-        if (rc < 0) {
-            if (rc == FFI_BAD_CONTEXT) {
-                errmsg = err_bad_ctx;
-            }
+    case PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS:
+        return ngx_http_wasm_resp_get_header(r, key, key_size, addr, size);
 
-            if (errmsg != NULL) {
-                ngx_log_error(NGX_LOG_ERR, log, 0, "failed to get response header %*s: %s",
-                              key_size, key, errmsg);
-            }
-
-            return PROXY_RESULT_BAD_ARGUMENT;
-        }
-
-        if (rc == 0) {
-            /* not found */
-            return ngx_http_wasm_copy_to_wasm(log, NULL, 0, addr, size);
-        }
-
-        return ngx_http_wasm_copy_to_wasm(log, values->data, values->len, addr, size);
+    default:
+        return PROXY_RESULT_BAD_ARGUMENT;
     }
 
     return PROXY_RESULT_OK;
