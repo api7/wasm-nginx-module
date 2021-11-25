@@ -78,3 +78,47 @@ X-API: foo
 qr/get request header: \S+/
 --- grep_error_log_out
 get request header: foo,
+
+
+
+=== TEST 5: get all header
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_hdr_get_all'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- more_headers
+X-API: foo
+--- grep_error_log eval
+qr/get request header: [^,]+/
+--- grep_error_log_out
+get request header: host localhost
+get request header: connection close
+get request header: x-api foo
+
+
+
+=== TEST 6: get all header, repeated headers
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_hdr_get_all'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- more_headers
+X-API: foo
+X-API: bar
+--- grep_error_log eval
+qr/get request header: [^,]+/
+--- grep_error_log_out
+get request header: host localhost
+get request header: connection close
+get request header: x-api foo
+get request header: x-api bar
