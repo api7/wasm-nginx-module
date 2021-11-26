@@ -39,6 +39,17 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 
 	action := string(data)
 	switch action {
+	case "req_hdr_get_all":
+		hdrs, err := proxywasm.GetHttpRequestHeaders()
+		if err != nil {
+			proxywasm.LogErrorf("error getting headers: %v", err)
+			return types.ActionContinue
+		}
+
+		for _, kv := range hdrs {
+			proxywasm.LogWarnf("get request header: %v %v", kv[0], kv[1])
+		}
+
 	case "req_hdr_get":
 		res, err := proxywasm.GetHttpRequestHeader("X-API")
 		if err != nil {
