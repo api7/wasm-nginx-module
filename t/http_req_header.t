@@ -122,3 +122,41 @@ get request header: host localhost
 get request header: connection close
 get request header: x-api foo
 get request header: x-api bar
+
+
+
+=== TEST 7: set header
+--- config
+location /t {
+    access_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_hdr_set'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+    content_by_lua_block {
+        ngx.say(ngx.var.http_foo)
+    }
+}
+--- more_headers
+FOO: foo
+--- response_body
+bar
+
+
+
+=== TEST 8: set header, missing
+--- config
+location /t {
+    access_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_hdr_set'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+    content_by_lua_block {
+        ngx.say(ngx.var.http_foo)
+    }
+}
+--- response_body
+bar

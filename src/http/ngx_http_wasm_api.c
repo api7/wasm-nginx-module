@@ -50,6 +50,10 @@ static int (*get_req_headers_count) (ngx_http_request_t *r,
     int max, int *truncated);
 static int (*get_req_headers) (ngx_http_request_t *r,
     ngx_http_wasm_table_elt_t *out, int count, int raw);
+static int (*set_req_header) (ngx_http_request_t *r,
+    const char *key, size_t key_len, const char *value,
+    size_t value_len, ngx_str_t *mvals, size_t mvals_len,
+    int override, char **errmsg);
 
 static char *err_bad_ctx = "API disabled in the current context";
 static char *err_no_req_ctx = "no request ctx found";
@@ -97,6 +101,7 @@ ngx_http_wasm_resolve_symbol(void)
     must_resolve_symbol(get_resp_header, ngx_http_lua_ffi_get_resp_header);
     must_resolve_symbol(get_req_headers_count, ngx_http_lua_ffi_req_get_headers_count);
     must_resolve_symbol(get_req_headers, ngx_http_lua_ffi_req_get_headers);
+    must_resolve_symbol(set_req_header, ngx_http_lua_ffi_req_set_header);
 
     return NGX_OK;
 }
@@ -184,6 +189,35 @@ ngx_http_wasm_get_buf_to_write(ngx_log_t *log, int32_t len,
 
 
 static ngx_int_t
+ngx_http_wasm_set_req_header(ngx_http_request_t *r,
+    const char *key, size_t key_len,
+    const char *val, size_t val_len,
+    int override)
+{
+    char               *errmsg = NULL;
+    ngx_int_t           rc;
+
+    rc = set_req_header(r, key, key_len, val, val_len, NULL, 0,
+                        override, &errmsg);
+    if (rc != NGX_OK && rc != NGX_DECLINED) {
+        if (rc == FFI_BAD_CONTEXT) {
+            errmsg = err_bad_ctx;
+        }
+
+        if (errmsg != NULL) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                          "faied to set request header %*s to %*s: %s",
+                          key_len, key, val_len, val, errmsg);
+        }
+
+        return NGX_ERROR;
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
 ngx_http_wasm_set_resp_header(ngx_http_request_t *r,
     const char *key, size_t key_len, int is_nil,
     const char *val, size_t val_len,
@@ -203,7 +237,7 @@ ngx_http_wasm_set_resp_header(ngx_http_request_t *r,
 
         if (errmsg != NULL) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "faied to set header %*s to %*s: %s",
+                          "faied to set response header %*s to %*s: %s",
                           key_len, key, val_len, val, errmsg);
         }
 
@@ -867,11 +901,21 @@ proxy_replace_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
     must_get_memory(key, log, key_data, key_size);
     must_get_memory(val, log, data, size);
 
-    if (type == PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS) {
+    switch (type) {
+    case PROXY_MAP_TYPE_HTTP_REQUEST_HEADERS:
+        rc = ngx_http_wasm_set_req_header(r, key, key_size, val, size, 1);
+        break;
+
+    case PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS:
         rc = ngx_http_wasm_set_resp_header(r, key, key_size, 0, val, size, 1);
-        if (rc != NGX_OK) {
-            return PROXY_RESULT_BAD_ARGUMENT;
-        }
+        break;
+
+    default:
+        return PROXY_RESULT_BAD_ARGUMENT;
+    }
+
+    if (rc != NGX_OK) {
+        return PROXY_RESULT_BAD_ARGUMENT;
     }
 
     return PROXY_RESULT_OK;
