@@ -68,6 +68,9 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 
 	case "req_hdr_set":
 		proxywasm.ReplaceHttpRequestHeader("foo", "bar")
+
+	case "req_hdr_add":
+		proxywasm.AddHttpRequestHeader("foo", "bar")
 	}
 
 	return types.ActionContinue

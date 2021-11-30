@@ -936,12 +936,19 @@ proxy_add_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
     must_get_memory(key, log, key_data, key_size);
     must_get_memory(val, log, data, size);
 
-    if (type == PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS) {
+    switch (type) {
+    case PROXY_MAP_TYPE_HTTP_REQUEST_HEADERS:
+        rc = ngx_http_wasm_set_req_header(r, key, key_size, val, size, 0);
+        break;
+
+    case PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS:
         rc = ngx_http_wasm_set_resp_header(r, key, key_size, 0, val, size, 0);
-        if (rc != NGX_OK) {
-            return PROXY_RESULT_BAD_ARGUMENT;
-        }
+        break;
+
+    default:
+        return PROXY_RESULT_BAD_ARGUMENT;
     }
+
 
     return PROXY_RESULT_OK;
 }
