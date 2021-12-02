@@ -160,3 +160,41 @@ location /t {
 }
 --- response_body
 bar
+
+
+
+=== TEST 9: add header
+--- config
+location /t {
+    access_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_hdr_add'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+    content_by_lua_block {
+        ngx.say(ngx.req.get_headers()["foo"])
+    }
+}
+--- more_headers
+FOO: foo
+--- response_body
+foobar
+
+
+
+=== TEST 10: add header, missing
+--- config
+location /t {
+    access_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_hdr_add'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+    content_by_lua_block {
+        ngx.say(ngx.req.get_headers()["foo"])
+    }
+}
+--- response_body
+bar
