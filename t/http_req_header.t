@@ -198,3 +198,62 @@ location /t {
 }
 --- response_body
 bar
+
+
+
+=== TEST 11: remove header
+--- config
+location /t {
+    access_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_hdr_del'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+    content_by_lua_block {
+        ngx.say(ngx.req.get_headers()["foo"])
+    }
+}
+--- more_headers
+FOO: foo
+--- response_body
+nil
+
+
+
+=== TEST 12: remove header, missing
+--- config
+location /t {
+    access_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_hdr_del'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+    content_by_lua_block {
+        ngx.say(ngx.req.get_headers()["foo"])
+    }
+}
+--- response_body
+nil
+
+
+
+=== TEST 13: remove header, all of it
+--- config
+location /t {
+    access_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_hdr_del'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+    content_by_lua_block {
+        ngx.say(ngx.req.get_headers()["foo"])
+    }
+}
+--- more_headers
+FOO: foo
+FOO: bar
+--- response_body
+nil
