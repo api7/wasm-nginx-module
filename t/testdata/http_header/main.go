@@ -71,6 +71,9 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 
 	case "req_hdr_add":
 		proxywasm.AddHttpRequestHeader("foo", "bar")
+
+	case "req_hdr_del":
+		proxywasm.RemoveHttpRequestHeader("foo")
 	}
 
 	return types.ActionContinue
