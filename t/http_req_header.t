@@ -260,7 +260,7 @@ nil
 
 
 
-=== TEST 14: get path
+=== TEST 14: get path (not args)
 --- config
 location /t {
     content_by_lua_block {
@@ -277,7 +277,26 @@ get request path: /t,
 
 
 
-=== TEST 15: get method
+=== TEST 15: get path (args)
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_path_get'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- request
+GET /t?q=hello&a=world
+--- grep_error_log eval
+qr/get request path: \S+/
+--- grep_error_log_out
+get request path: /t?q=hello&a=world,
+
+
+
+=== TEST 16: get method (GET)
 --- config
 location /t {
     content_by_lua_block {
@@ -291,3 +310,60 @@ location /t {
 qr/get request method: \S+/
 --- grep_error_log_out
 get request method: GET,
+
+
+
+=== TEST 17: get method (POST)
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_method_get'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- request
+POST /t
+--- grep_error_log eval
+qr/get request method: \S+/
+--- grep_error_log_out
+get request method: POST,
+
+
+
+=== TEST 18: get method (PUT)
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_method_get'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- request
+PUT /t
+--- grep_error_log eval
+qr/get request method: \S+/
+--- grep_error_log_out
+get request method: PUT,
+
+
+
+=== TEST 19: get method (DELETE)
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_method_get'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- request
+DELETE /t
+--- grep_error_log eval
+qr/get request method: \S+/
+--- grep_error_log_out
+get request method: DELETE,
