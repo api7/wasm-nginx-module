@@ -799,12 +799,12 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
                         break;
                 }
 
-                if (val == NULL) {
-                    break;
-                }
+                if (val) break;
             }
         }
-    } else {
+    }
+
+    if (val == NULL) {
         for (i = 0; /* void */ ; i++) {
 
             if (i >= part->nelts) {
