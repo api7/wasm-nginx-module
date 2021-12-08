@@ -74,6 +74,22 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 
 	case "req_hdr_del":
 		proxywasm.RemoveHttpRequestHeader("foo")
+
+	case "req_path_get":
+		res, err := proxywasm.GetHttpRequestHeader(":path")
+		if err != nil {
+			proxywasm.LogErrorf("error get request path: %v", err)
+			return types.ActionContinue
+		}
+		proxywasm.LogWarnf("get request path: %v", res)
+
+	case "req_method_get":
+		res, err := proxywasm.GetHttpRequestHeader(":method")
+		if err != nil {
+			proxywasm.LogErrorf("error get request method: %v", err)
+			return types.ActionContinue
+		}
+		proxywasm.LogWarnf("get request method: %v", res)
 	}
 
 	return types.ActionContinue
