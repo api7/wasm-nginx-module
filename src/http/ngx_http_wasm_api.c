@@ -37,6 +37,24 @@ typedef struct {
         return NGX_ERROR; \
     }
 
+enum {
+    WASM_H2_HEADER_PATH = 1,
+    WASM_H2_HEADER_METHOD,
+};
+
+typedef struct {
+    ngx_str_t name;
+    ngx_uint_t ty;
+} ngx_wasm_h2_header_t;
+
+static ngx_wasm_h2_header_t ngx_wasm_h2_header_static_table[] = {
+        {ngx_string(":path"),   WASM_H2_HEADER_PATH},
+        {ngx_string(":method"), WASM_H2_HEADER_METHOD},
+};
+
+#define NGX_WASM_H2_HEADER_STATIC_TABLE_ENTRIES                                      \
+    (sizeof(ngx_wasm_h2_header_static_table)                                         \
+     / sizeof(ngx_wasm_h2_header_t))
 
 static int (*set_resp_header) (ngx_http_request_t *r,
     const char *key_data, size_t key_len, int is_nil,
@@ -762,30 +780,56 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
         key_buf = (u_char *) key;
     }
 
-    for (i = 0; /* void */ ; i++) {
+    if (key_buf[0] == ':') {
+        for (i = 0; i < NGX_WASM_H2_HEADER_STATIC_TABLE_ENTRIES; i++) {
+            if (ngx_strncasecmp(key_buf, ngx_wasm_h2_header_static_table[i].name.data,
+                                key_size) == 0) {
 
-        if (i >= part->nelts) {
-            if (part->next == NULL) {
-                break;
+                switch (ngx_wasm_h2_header_static_table[i].ty) {
+                    case WASM_H2_HEADER_PATH:
+                        val = r->unparsed_uri.data;
+                        val_len = r->unparsed_uri.len;
+                        break;
+                    case WASM_H2_HEADER_METHOD:
+                        val = r->method_name.data;
+                        val_len = r->method_name.len;
+                        break;
+                        /* todo: scheme https://github.com/api7/wasm-nginx-module/issues/47 */
+                    default:
+                        break;
+                }
+
+                if (val == NULL) {
+                    break;
+                }
+            }
+        }
+    } else {
+        for (i = 0; /* void */ ; i++) {
+
+            if (i >= part->nelts) {
+                if (part->next == NULL) {
+                    break;
+                }
+
+                part = part->next;
+                header = part->elts;
+                i = 0;
             }
 
-            part = part->next;
-            header = part->elts;
-            i = 0;
-        }
+            if (header[i].hash == 0) {
+                continue;
+            }
 
-        if (header[i].hash == 0) {
-            continue;
-        }
+            if ((size_t) key_size != header[i].key.len) {
+                continue;
+            }
 
-        if ((size_t) key_size != header[i].key.len) {
-            continue;
-        }
-
-        if (ngx_strncasecmp(key_buf, header[i].key.data, header[i].key.len) == 0) {
-            val = header[i].value.data;
-            val_len = header[i].value.len;
-            break;
+            if (ngx_strncasecmp(key_buf, header[i].key.data, header[i].key.len) == 0) {
+                val = header[i].value.data;
+                val_len = header[i].value.len;
+                break;
+            }
         }
     }
 

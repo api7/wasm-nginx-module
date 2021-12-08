@@ -198,3 +198,37 @@ location /t {
 }
 --- response_body
 bar
+
+
+
+=== TEST 11: get path
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_path_get'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- grep_error_log eval
+qr/get request path: \S+/
+--- grep_error_log_out
+get request path: /t,
+
+
+
+=== TEST 12: get method
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_method_get'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- grep_error_log eval
+qr/get request method: \S+/
+--- grep_error_log_out
+get request method: GET,
