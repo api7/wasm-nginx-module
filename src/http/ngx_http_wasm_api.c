@@ -749,13 +749,13 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
                              int32_t addr, int32_t size)
 {
     ngx_log_t                 *log;
-    ngx_uint_t                i;
+    ngx_uint_t                 i;
     ngx_list_part_t           *part;
     ngx_table_elt_t           *header;
     ngx_http_wasm_h2_header_t *wh;
     unsigned char             *key_buf = NULL;
     const u_char              *val = NULL;
-    int32_t                   val_len = 0;
+    int32_t                    val_len = 0;
 
     log = r->connection->log;
     part = &r->headers_in.headers.part;
@@ -808,7 +808,9 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
                     break;
                 }
 
-                if (val) break;
+                if (val) {
+                    break;
+                }
             }
         }
     }
