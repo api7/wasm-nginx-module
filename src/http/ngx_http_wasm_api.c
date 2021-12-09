@@ -808,41 +808,47 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
                     break;
                 }
 
-                if (val) {
-                    break;
+                if (val != NULL) {
+                    goto success;
                 }
             }
         }
     }
 
-    if (val == NULL) {
-        for (i = 0; /* void */ ; i++) {
+    for (i = 0; /* void */ ; i++) {
 
-            if (i >= part->nelts) {
-                if (part->next == NULL) {
-                    break;
-                }
-
-                part = part->next;
-                header = part->elts;
-                i = 0;
-            }
-
-            if (header[i].hash == 0) {
-                continue;
-            }
-
-            if ((size_t) key_size != header[i].key.len) {
-                continue;
-            }
-
-            if (ngx_strncasecmp(key_buf, header[i].key.data, header[i].key.len) == 0) {
-                val = header[i].value.data;
-                val_len = header[i].value.len;
+        if (i >= part->nelts) {
+            if (part->next == NULL) {
                 break;
             }
+
+            part = part->next;
+            header = part->elts;
+            i = 0;
+        }
+
+        if (header[i].hash == 0) {
+            continue;
+        }
+
+        if ((size_t) key_size != header[i].key.len) {
+            continue;
+        }
+
+        if (ngx_strncasecmp(key_buf, header[i].key.data, header[i].key.len) == 0) {
+            val = header[i].value.data;
+            val_len = header[i].value.len;
+            goto success;
         }
     }
+
+    if (key_buf != (u_char *) key) {
+        ngx_free(key_buf);
+    }
+
+    return ngx_http_wasm_copy_to_wasm(log, NULL, 0, addr, size);
+
+success:
 
     if (key_buf != (u_char *) key) {
         ngx_free(key_buf);
