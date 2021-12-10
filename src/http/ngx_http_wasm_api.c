@@ -12,6 +12,16 @@ typedef struct {
     ngx_str_t       value;
 } ngx_http_wasm_table_elt_t;
 
+typedef struct {
+    ngx_str_t name;
+    ngx_uint_t ty;
+} ngx_http_wasm_h2_header_t;
+
+
+enum {
+    WASM_H2_HEADER_PATH = 1,
+    WASM_H2_HEADER_METHOD,
+};
 
 #define STR_BUF_SIZE    4096
 
@@ -37,6 +47,10 @@ typedef struct {
         return NGX_ERROR; \
     }
 
+#define WASM_H2_HEADER_STATIC_TABLE_ENTRIES                                      \
+    (sizeof(wasm_h2_header_static_table)                                         \
+     / sizeof(ngx_http_wasm_h2_header_t))
+
 
 static int (*set_resp_header) (ngx_http_request_t *r,
     const char *key_data, size_t key_len, int is_nil,
@@ -59,6 +73,11 @@ static char *err_bad_ctx = "API disabled in the current context";
 static char *err_no_req_ctx = "no request ctx found";
 
 static char *str_buf[STR_BUF_SIZE] = {0};
+
+static ngx_http_wasm_h2_header_t wasm_h2_header_static_table[] = {
+    {ngx_string(":path"),   WASM_H2_HEADER_PATH},
+    {ngx_string(":method"), WASM_H2_HEADER_METHOD},
+};
 
 
 wasm_functype_t *
@@ -729,13 +748,14 @@ static int32_t
 ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size,
                              int32_t addr, int32_t size)
 {
-    ngx_log_t           *log;
-    ngx_uint_t           i;
-    ngx_list_part_t     *part;
-    ngx_table_elt_t     *header;
-    unsigned char       *key_buf = NULL;
-    const u_char        *val = NULL;
-    int32_t              val_len = 0;
+    ngx_log_t                 *log;
+    ngx_uint_t                 i;
+    ngx_list_part_t           *part;
+    ngx_table_elt_t           *header;
+    ngx_http_wasm_h2_header_t *wh;
+    unsigned char             *key_buf = NULL;
+    const u_char              *val = NULL;
+    int32_t                    val_len = 0;
 
     log = r->connection->log;
     part = &r->headers_in.headers.part;
@@ -760,6 +780,39 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
 
     } else {
         key_buf = (u_char *) key;
+    }
+
+    if (key_size > 0 && key_buf[0] == ':') {
+        for (i = 0; i < WASM_H2_HEADER_STATIC_TABLE_ENTRIES; i++) {
+            wh = &wasm_h2_header_static_table[i];
+
+            if ((size_t) key_size != wh->name.len) {
+                continue;
+            }
+
+            if (ngx_strncasecmp(key_buf, wh->name.data, wh->name.len) == 0) {
+
+                switch (wh->ty) {
+                case WASM_H2_HEADER_PATH:
+                    val = r->unparsed_uri.data;
+                    val_len = r->unparsed_uri.len;
+                    break;
+
+                case WASM_H2_HEADER_METHOD:
+                    val = r->method_name.data;
+                    val_len = r->method_name.len;
+                    break;
+
+                /* todo: scheme https://github.com/api7/wasm-nginx-module/issues/47 */
+                default:
+                    break;
+                }
+
+                if (val != NULL) {
+                    goto done;
+                }
+            }
+        }
     }
 
     for (i = 0; /* void */ ; i++) {
@@ -788,6 +841,8 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
             break;
         }
     }
+
+done:
 
     if (key_buf != (u_char *) key) {
         ngx_free(key_buf);
