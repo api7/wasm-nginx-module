@@ -809,7 +809,7 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
                 }
 
                 if (val != NULL) {
-                    goto success;
+                    goto done;
                 }
             }
         }
@@ -838,17 +838,11 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
         if (ngx_strncasecmp(key_buf, header[i].key.data, header[i].key.len) == 0) {
             val = header[i].value.data;
             val_len = header[i].value.len;
-            goto success;
+            break;
         }
     }
 
-    if (key_buf != (u_char *) key) {
-        ngx_free(key_buf);
-    }
-
-    return ngx_http_wasm_copy_to_wasm(log, NULL, 0, addr, size);
-
-success:
+done:
 
     if (key_buf != (u_char *) key) {
         ngx_free(key_buf);
