@@ -377,7 +377,7 @@ location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
         local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
-        local ctx = assert(wasm.on_configure(plugin, 'req_schema_get'))
+        local ctx = assert(wasm.on_configure(plugin, 'req_scheme_get'))
         assert(wasm.on_http_request_headers(ctx))
     }
 }
