@@ -90,6 +90,14 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 			return types.ActionContinue
 		}
 		proxywasm.LogWarnf("get request method: %v", res)
+
+	case "req_schema_get":
+		res, err := proxywasm.GetHttpRequestHeader(":scheme")
+		if err != nil {
+			proxywasm.LogErrorf("error get request scheme: %v", err)
+			return types.ActionContinue
+		}
+		proxywasm.LogWarnf("get request scheme: %v", res)
 	}
 
 	return types.ActionContinue
