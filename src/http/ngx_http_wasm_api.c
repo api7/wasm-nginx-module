@@ -21,6 +21,7 @@ typedef struct {
 enum {
     WASM_H2_HEADER_PATH = 1,
     WASM_H2_HEADER_METHOD,
+    WASM_H2_HEADER_SCHEME,
 };
 
 #define STR_BUF_SIZE    4096
@@ -77,6 +78,7 @@ static char *str_buf[STR_BUF_SIZE] = {0};
 static ngx_http_wasm_h2_header_t wasm_h2_header_static_table[] = {
     {ngx_string(":path"),   WASM_H2_HEADER_PATH},
     {ngx_string(":method"), WASM_H2_HEADER_METHOD},
+    {ngx_string(":scheme"), WASM_H2_HEADER_SCHEME},
 };
 
 
@@ -803,7 +805,11 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
                     val_len = r->method_name.len;
                     break;
 
-                /* todo: scheme https://github.com/api7/wasm-nginx-module/issues/47 */
+                case WASM_H2_HEADER_SCHEME:
+                    val = r->schema.data;
+                    val_len = r->schema.len;
+                    break;
+
                 default:
                     break;
                 }
