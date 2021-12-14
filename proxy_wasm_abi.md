@@ -250,7 +250,7 @@ Remove key (`key_data`, `key_size`) from a given map (`map_type`).
   - `i32 (const char*) res_data`
   - `i32 (size_t) res_size`
 
-Get data such as Nginx variables and plugin ID.
+Get data such as Nginx variables and plugin ID, Use path_data as key and write the value of the obtained variable to res_data.
 ## HTTP (L7) extensions
 
 ### `proxy_send_http_response`
