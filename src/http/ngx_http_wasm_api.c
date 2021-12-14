@@ -311,7 +311,20 @@ proxy_get_property(int32_t path_data, int32_t path_size,
                                           res_data, res_size);
     }
 
-    return PROXY_RESULT_OK;
+    ngx_http_request_t *r;
+    must_get_req(r);
+    
+    u_char *lowcase_buf = ngx_palloc(r->pool, path_size);
+    ngx_str_t property_name;
+    
+    ngx_uint_t hash = ngx_hash_strlow(lowcase_buf, p, path_size);
+
+    property_name.data = lowcase_buf;
+    property_name.len = path_size;
+
+    ngx_http_variable_value_t *vv = ngx_http_get_variable(r, &property_name, hash);
+    
+    return ngx_http_wasm_copy_to_wasm(log, vv->data, vv->len, res_data, res_size);
 }
 
 
