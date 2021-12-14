@@ -45,13 +45,18 @@ type httpLifecycle struct {
 var variables = []string{"arg_test", "scheme", "host", "request_uri", "uri"}
 
 func (ctx *httpLifecycle) OnHttpRequestHeaders(numHeaders int, endOfStream bool) types.Action {
-	for _, name := range variables {
-		value, err := proxywasm.GetProperty([]string{name})
-		if err != nil {
-			proxywasm.LogErrorf("error get property: %v", err)
-			return types.ActionContinue
-		}
-		proxywasm.LogWarnf("get property %v: %v", name, string(value))
+	data, err := proxywasm.GetPluginConfiguration()
+	if err != nil {
+		proxywasm.LogErrorf("error reading plugin configuration: %v", err)
+		return types.ActionContinue
 	}
+
+	name := string(data)
+	value, err := proxywasm.GetProperty([]string{name})
+	if err != nil {
+		proxywasm.LogErrorf("error get property: %v", err)
+		return types.ActionContinue
+	}
+	proxywasm.LogWarnf("get property: %v = %v", name, string(value))
 	return types.ActionContinue
 }

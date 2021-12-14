@@ -4,32 +4,27 @@ run_tests();
 
 __DATA__
 
-=== TEST 1: load
+=== TEST 1: get_property (host)
 --- config
 location /t {
     content_by_lua_block {
-        local wasm = require("resty.proxy-wasm")
-        assert(wasm.load("plugin", "t/testdata/property/main.go.wasm"))
-    }
-}
+        local test_cases = {
+            "scheme", "host", "uri", "arg_test", "request_uri",
+        }
 
-
-
-=== TEST2: get_property
---- config
-location /t {
-    content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
         local plugin = wasm.load("plugin", "t/testdata/property/main.go.wasm")
-        local plugin_ctx, err = wasm.on_configure(plugin, "test")
-        assert(wasm.on_http_request_headers(plugin_ctx))
+        for _, case in ipairs(test_cases) do
+            local plugin_ctx, err = wasm.on_configure(plugin, case)
+            assert(wasm.on_http_request_headers(plugin_ctx))
+        end
     }
 }
 --- request
 GET /t?test=yeah
 --- error_log
-get property arg_test: yeah
-get property scheme: http
-get property host: localhost
-get property request_uri: /t?test=yeah
-get property uri: /t
+get property: scheme = http
+get property: host = localhost
+get property: uri = /t
+get property: arg_test = yeah
+get property: request_uri = /t?test=yeah
