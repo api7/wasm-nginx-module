@@ -51,7 +51,7 @@ func (ctx *httpLifecycle) OnHttpRequestHeaders(numHeaders int, endOfStream bool)
 			proxywasm.LogErrorf("error get property: %v", err)
 			return types.ActionContinue
 		}
-		proxywasm.LogWarnf("get property: %v", string(value))
+		proxywasm.LogWarnf("get property %v: %v", name, string(value))
 	}
 	return types.ActionContinue
 }
