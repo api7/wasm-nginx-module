@@ -8,7 +8,7 @@ log_level('info');
 no_long_string();
 no_shuffle();
 master_on();
-worker_connections(128);
+worker_connections(1024);
 
 
 $ENV{TEST_NGINX_HTML_DIR} ||= html_dir();
@@ -36,6 +36,15 @@ add_block_preprocessor(sub {
     $http_config .= <<_EOC_;
     lua_package_path "lib/?.lua;;";
     wasm_vm wasmtime;
+
+    server {
+        listen 1980;
+        location / {
+            content_by_lua_block {
+                ngx.log(ngx.WARN, "hit")
+            }
+        }
+    }
 _EOC_
 
     $block->set_value("http_config", $http_config);

@@ -6,10 +6,12 @@
 #include <ngx_core.h>
 
 
-#define NGX_WASM_PARAM_VOID         1
-#define NGX_WASM_PARAM_I32          2
-#define NGX_WASM_PARAM_I32_I32      3
-#define NGX_WASM_PARAM_I32_I32_I32  4
+#define NGX_WASM_PARAM_VOID                 1
+#define NGX_WASM_PARAM_I32                  2
+#define NGX_WASM_PARAM_I32_I32              3
+#define NGX_WASM_PARAM_I32_I32_I32          4
+#define NGX_WASM_PARAM_I32_I32_I32_I32      5
+#define NGX_WASM_PARAM_I32_I32_I32_I32_I32  6
 
 
 typedef struct {

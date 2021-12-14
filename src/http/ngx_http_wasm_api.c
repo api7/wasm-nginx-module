@@ -5,6 +5,7 @@
 #include "ngx_http_wasm_module.h"
 #include "ngx_http_wasm_state.h"
 #include "ngx_http_wasm_map.h"
+#include "ngx_http_wasm_call.h"
 
 
 typedef struct {
@@ -38,6 +39,7 @@ typedef struct {
     }
 
 
+static int (*get_phase) (ngx_http_request_t *r, char **err);
 static int (*set_resp_header) (ngx_http_request_t *r,
     const char *key_data, size_t key_len, int is_nil,
     const char *sval, size_t sval_len, ngx_str_t *mvals,
@@ -97,6 +99,7 @@ ngx_http_wasm_resolve_symbol(void)
 
     dlerror();    /* Clear any existing error */
 
+    must_resolve_symbol(get_phase, ngx_http_lua_ffi_get_phase);
     must_resolve_symbol(set_resp_header, ngx_http_lua_ffi_set_resp_header);
     must_resolve_symbol(get_resp_header, ngx_http_lua_ffi_get_resp_header);
     must_resolve_symbol(get_req_headers_count, ngx_http_lua_ffi_req_get_headers_count);
@@ -104,6 +107,21 @@ ngx_http_wasm_resolve_symbol(void)
     must_resolve_symbol(set_req_header, ngx_http_lua_ffi_req_set_header);
 
     return NGX_OK;
+}
+
+
+static bool
+ngx_http_wasm_is_yieldable(ngx_http_request_t *r)
+{
+    char    *errmsg;
+    int      phase;
+
+    phase = get_phase(r, &errmsg);
+    if (phase < 0) {
+        return false;
+    }
+
+    return (phase & NGX_HTTP_WASM_YIELDABLE) != 0;
 }
 
 
@@ -1033,6 +1051,24 @@ proxy_clear_route_cache(void)
 }
 
 
+static ngx_str_t *
+ngx_http_wasm_copy_as_str(ngx_http_request_t *r, char *src, size_t size)
+{
+    ngx_str_t       *s;
+
+    s = ngx_palloc(r->pool, sizeof(ngx_str_t) + size);
+    if (s == NULL) {
+        return NULL;
+    }
+
+    s->data = (u_char *) (s + 1);
+    ngx_cpymem(s->data, src, size);
+    s->len = size;
+
+    return s;
+}
+
+
 int32_t
 proxy_http_call(int32_t up_data, int32_t up_size,
                 int32_t headers_data, int32_t headers_size,
@@ -1040,6 +1076,76 @@ proxy_http_call(int32_t up_data, int32_t up_size,
                 int32_t trailer_data, int32_t trailer_size,
                 int32_t timeout, int32_t callout_addr)
 {
+    ngx_int_t        rc;
+    char            *p;
+    ngx_str_t       *up;
+    u_char          *headers = NULL;
+    ngx_str_t       *body = NULL;
+    uint32_t         callout_id;
+    uint32_t        *p_callout;
+
+    ngx_http_request_t *r;
+    ngx_log_t          *log;
+    ngx_url_t           url;
+
+    r = ngx_http_wasm_get_req();
+    log = r->connection->log;
+
+    if (!ngx_http_wasm_is_yieldable(r)) {
+        ngx_log_error(NGX_LOG_ERR, log, 0,
+                      "http call is only supported during processing HTTP request");
+        return PROXY_RESULT_BAD_ARGUMENT;
+    }
+
+    must_get_memory(p, log, up_data, up_size);
+
+    up = ngx_http_wasm_copy_as_str(r, p, up_size);
+    if (up == NULL) {
+        return PROXY_RESULT_INTERNAL_FAILURE;
+    }
+
+    ngx_memzero(&url, sizeof(ngx_url_t));
+    url.url = *up;
+    url.no_resolve = 1;
+
+    if (ngx_parse_url(r->pool, &url) != NGX_OK) {
+        ngx_log_error(NGX_LOG_ERR, log, 0, "http call gets invalid host: %V", up);
+        return PROXY_RESULT_BAD_ARGUMENT;
+    }
+
+    if (headers_size > 0) {
+        must_get_memory(p, log, headers_data, headers_size);
+
+        headers = ngx_palloc(r->pool, headers_size);
+        if (headers == NULL) {
+            return PROXY_RESULT_INTERNAL_FAILURE;
+        }
+
+        ngx_memcpy(headers, p, headers_size);
+    }
+
+    if (body_size > 0) {
+        must_get_memory(p, log, body_data, body_size);
+
+        body = ngx_http_wasm_copy_as_str(r, p, body_size);
+        if (body == NULL) {
+            return PROXY_RESULT_INTERNAL_FAILURE;
+        }
+    }
+
+    /* TODO: handle trailer */
+
+    rc = ngx_http_wasm_call_register(r, up, headers, body, timeout, &callout_id);
+    if (rc != NGX_OK) {
+        return PROXY_RESULT_INTERNAL_FAILURE;
+    }
+
+    p_callout = (uint32_t *) ngx_wasm_vm.get_memory(log, callout_addr, sizeof(callout_id));
+    if (p_callout == NULL) {
+        return PROXY_RESULT_INVALID_MEMORY_ACCESS;
+    }
+
+    *p_callout = callout_id;
     return PROXY_RESULT_OK;
 }
 
