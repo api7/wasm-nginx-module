@@ -16,12 +16,13 @@ location /t {
 
 
 === TEST2: get_property
+--- config
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin = wasm.load("plugin", "t/testdata/plugin_lifecycle/main.go.wasm")
+        local plugin = wasm.load("plugin", "t/testdata/property/main.go.wasm")
         local plugin_ctx, err = wasm.on_configure(plugin, "test")
-        assert(wasm.on_http_request_headers(test_ctx))
+        assert(wasm.on_http_request_headers(plugin_ctx))
     }
 }
 --- request
