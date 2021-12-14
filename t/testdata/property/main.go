@@ -42,8 +42,6 @@ type httpLifecycle struct {
 	contextID uint32
 }
 
-var variables = []string{"arg_test", "scheme", "host", "request_uri", "uri"}
-
 func (ctx *httpLifecycle) OnHttpRequestHeaders(numHeaders int, endOfStream bool) types.Action {
 	data, err := proxywasm.GetPluginConfiguration()
 	if err != nil {
