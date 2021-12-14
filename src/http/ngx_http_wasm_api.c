@@ -324,6 +324,10 @@ proxy_get_property(int32_t path_data, int32_t path_size,
 
     ngx_http_variable_value_t *vv = ngx_http_get_variable(r, &property_name, hash);
     
+    if (vv->not_found == 1) {
+        return PROXY_RESULT_NOT_FOUND;
+    }
+
     return ngx_http_wasm_copy_to_wasm(log, vv->data, vv->len, res_data, res_size);
 }
 
