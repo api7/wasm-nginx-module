@@ -292,9 +292,14 @@ int32_t
 proxy_get_property(int32_t path_data, int32_t path_size,
                    int32_t res_data, int32_t res_size)
 {
-    ngx_log_t          *log;
-    const u_char       *p;
-
+    u_char                      *lowcase_buf;
+    ngx_log_t                   *log;
+    ngx_str_t                    property_name;
+    ngx_uint_t                   hash;
+    const u_char                *p;
+    ngx_http_request_t          *r;
+    ngx_http_variable_value_t   *vv;
+    
     log = ngx_http_wasm_get_log();
 
     p = ngx_wasm_vm.get_memory(log, path_data, path_size);
@@ -310,8 +315,26 @@ proxy_get_property(int32_t path_data, int32_t path_size,
         return ngx_http_wasm_copy_to_wasm(log, name->data, name->len,
                                           res_data, res_size);
     }
+    
+    /*
+     * assemblyscript need plugin_root_id to initialize, and the state 
+     * will set after plugin initialization completed
+     */
+    must_get_req(r);
+    
+    lowcase_buf = ngx_http_wasm_get_string_buf(r->pool, path_size);
+    hash = ngx_hash_strlow(lowcase_buf, (u_char *) p, path_size);
+    property_name.data = lowcase_buf;
+    property_name.len = path_size;
 
-    return PROXY_RESULT_OK;
+    vv = ngx_http_get_variable(r, &property_name, hash);
+    
+    if (vv->not_found == 1) {
+        return PROXY_RESULT_NOT_FOUND;
+    }
+    
+    return ngx_http_wasm_copy_to_wasm(log, vv->data, vv->len,
+                                      res_data, res_size);
 }
 
 
