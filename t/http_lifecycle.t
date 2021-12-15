@@ -133,7 +133,7 @@ run http ctx 2 with conf {"body":256} on http request headers,
 
 
 
-=== TEST 6: on reponse headers
+=== TEST 6: on response headers
 --- config
 location /t {
     content_by_lua_block {
@@ -157,7 +157,7 @@ run http ctx 2 with conf {"body":512} on http response headers,
 
 
 
-=== TEST 7: crash on reponse headers
+=== TEST 7: crash on response headers
 --- config
 location /t {
     content_by_lua_block {

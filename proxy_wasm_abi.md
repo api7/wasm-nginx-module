@@ -242,6 +242,16 @@ Add key (`key_data`, `key_size`) with the value (`value_data`, `value_size`) to 
 Remove key (`key_data`, `key_size`) from a given map (`map_type`).
 
 
+### `proxy_get_property`
+
+* params:
+  - `i32 (const char*) path_data`
+  - `i32 (size_t) path_size`
+  - `i32 (const char*) res_data`
+  - `i32 (size_t) res_size`
+
+Get data such as Nginx variables and plugin ID, Use path_data as key and write the value of the obtained variable to res_data.
+
 ## HTTP (L7) extensions
 
 ### `proxy_send_http_response`
