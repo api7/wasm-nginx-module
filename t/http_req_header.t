@@ -97,6 +97,9 @@ qr/get request header: [^,]+/
 get request header: host localhost
 get request header: connection close
 get request header: x-api foo
+get request header: :path /t
+get request header: :method GET
+get request header: :scheme http
 
 
 
@@ -120,6 +123,9 @@ get request header: host localhost
 get request header: connection close
 get request header: x-api foo
 get request header: x-api bar
+get request header: :path /t
+get request header: :method GET
+get request header: :scheme http
 
 
 
