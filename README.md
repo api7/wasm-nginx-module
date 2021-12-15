@@ -83,9 +83,9 @@ end
 assert(wasm.on_http_request_headers(ctx))
 ```
 
-### on_http_reponse_headers
+### on_http_response_headers
 
-`syntax: ok, err = proxy_wasm.on_http_reponse_headers(plugin_ctx)`
+`syntax: ok, err = proxy_wasm.on_http_response_headers(plugin_ctx)`
 
 Run the HTTP response headers filter in the plugin of the given plugin ctx.
 
