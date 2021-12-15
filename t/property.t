@@ -9,7 +9,7 @@ __DATA__
 location /t {
     content_by_lua_block {
         local test_cases = {
-            "scheme", "host", "uri", "arg_test", "request_uri",
+            "plugin_root_id", "scheme", "host", "uri", "arg_test", "request_uri",
         }
 
         local wasm = require("resty.proxy-wasm")
@@ -23,6 +23,7 @@ location /t {
 --- request
 GET /t?test=yeah
 --- error_log
+get property: plugin_root_id = plugin
 get property: scheme = http
 get property: host = localhost
 get property: uri = /t
