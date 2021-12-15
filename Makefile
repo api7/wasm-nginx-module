@@ -31,3 +31,4 @@ endif
 lint: utils
 	luacheck .
 	./utils/check-test-code-style.sh
+	git ls-files | xargs eclint check

@@ -14,10 +14,19 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Get dependencies
+      - name: Install luacheck
         run: |
           sudo apt install -y luarocks
           sudo luarocks install luacheck > build.log 2>&1 || (cat build.log && exit 1)
+
+      - name: Setup Nodejs env
+        uses: actions/setup-node@v2.5.0
+        with:
+          node-version: '12'
+
+      - name: Install eclint
+        run: |
+          sudo npm install -g eclint
 
       - name: Script
         run: |

@@ -21,7 +21,8 @@ root = true
 charset = utf-8
 end_of_line = lf
 indent_style = space
-indent_size = 4
+; the C code's indentation depends on the syntax
+;indent_size = 4
 insert_final_newline = true
 trim_trailing_whitespace = true
 
