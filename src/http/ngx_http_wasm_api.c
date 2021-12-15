@@ -539,7 +539,7 @@ ngx_http_wasm_req_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size_
 
     if (count == 0) {
         /* not found */
-        return ngx_http_wasm_copy_to_wasm(log, NULL, 0, addr, size_addr);
+        return PROXY_RESULT_NOT_FOUND;
     }
 
     headers = ngx_http_wasm_get_string_buf(r->pool, count * sizeof(ngx_http_wasm_table_elt_t));
@@ -874,6 +874,10 @@ done:
         ngx_free(key_buf);
     }
 
+    if (val == NULL) {
+        return PROXY_RESULT_NOT_FOUND;
+    }
+
     return ngx_http_wasm_copy_to_wasm(log, val, val_len, addr, size);
 }
 
@@ -913,7 +917,7 @@ ngx_http_wasm_resp_get_header(ngx_http_request_t *r, char *key,  int32_t key_siz
 
     if (rc == 0) {
         /* not found */
-        return ngx_http_wasm_copy_to_wasm(log, NULL, 0, addr, size);
+        return PROXY_RESULT_NOT_FOUND;
     }
 
     return ngx_http_wasm_copy_to_wasm(log, values->data, values->len, addr, size);
