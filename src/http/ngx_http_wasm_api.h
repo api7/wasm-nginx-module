@@ -291,7 +291,10 @@ DEFINE_WASM_API(proxy_done,
                 DEFINE_WASM_API_ARG_CHECK_VOID(proxy_done))
 
 
-static ngx_wasm_host_api_t host_apis[] = {
+/* Here we put the definition of host_apis in the header so we don't need to modify two files when
+ * a new host API is added. A side effect is that the compiler will think this variable 'unused'.
+ * */
+static ngx_wasm_host_api_t __attribute__((unused)) host_apis[] = {
     DEFINE_WASM_NAME(proxy_set_effective_context, DEFINE_WASM_NAME_ARG_I32)
     DEFINE_WASM_NAME(proxy_log, DEFINE_WASM_NAME_ARG_I32_I32_I32)
     DEFINE_WASM_NAME(proxy_get_property, DEFINE_WASM_NAME_ARG_I32_I32_I32_I32)
