@@ -55,10 +55,8 @@ location /t {
 }
 --- more_headers
 X-APIA: bar
---- grep_error_log eval
-qr/get request header: \S+/
---- grep_error_log_out
-get request header: ,
+--- error_log
+error status returned by host: not found
 
 
 

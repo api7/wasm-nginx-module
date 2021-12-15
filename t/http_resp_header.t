@@ -83,10 +83,8 @@ location /t {
         assert(wasm.on_http_response_headers(ctx))
     }
 }
---- grep_error_log eval
-qr/get response header: \S+/
---- grep_error_log_out
-get response header: [],
+--- error_log
+error status returned by host: not found
 
 
 
