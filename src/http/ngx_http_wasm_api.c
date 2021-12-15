@@ -373,14 +373,11 @@ int32_t
 proxy_get_buffer_bytes(int32_t type, int32_t start, int32_t length,
                        int32_t addr, int32_t size_addr)
 {
-    ngx_log_t      *log;
-    const u_char   *data;
-    int32_t         len;
-
+    ngx_log_t            *log;
+    const u_char         *data;
+    int32_t               len;
     const ngx_str_t      *conf;
-    ngx_http_request_t   *r;
 
-    r = ngx_http_wasm_get_req();
     log = ngx_http_wasm_get_log();
 
     switch (type) {
@@ -1020,6 +1017,10 @@ proxy_add_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
         return PROXY_RESULT_BAD_ARGUMENT;
     }
 
+
+    if (rc != NGX_OK) {
+        return PROXY_RESULT_BAD_ARGUMENT;
+    }
 
     return PROXY_RESULT_OK;
 }
