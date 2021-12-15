@@ -322,7 +322,7 @@ proxy_get_property(int32_t path_data, int32_t path_size,
      */
     must_get_req(r);
     
-    lowcase_buf = ngx_palloc(r->pool, path_size);
+    lowcase_buf = ngx_http_wasm_get_string_buf(r->pool, path_size);
     hash = ngx_hash_strlow(lowcase_buf, p, path_size);
     property_name.data = lowcase_buf;
     property_name.len = path_size;
