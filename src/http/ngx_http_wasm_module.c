@@ -696,7 +696,6 @@ ngx_http_wasm_on_http_call_resp(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_re
     ngx_log_t                       *log;
     ngx_http_wasm_ctx_t             *ctx;
     ngx_http_wasm_http_ctx_t        *http_ctx;
-    ngx_http_wasm_main_conf_t       *wmcf;
 
     log = r->connection->log;
 
@@ -705,7 +704,6 @@ ngx_http_wasm_on_http_call_resp(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_re
         return NGX_DECLINED;
     }
 
-    wmcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
     hwp_ctx->state->r = r;
     ngx_http_wasm_set_state(hwp_ctx->state);
 

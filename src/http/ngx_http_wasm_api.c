@@ -1205,7 +1205,7 @@ ngx_http_wasm_copy_as_str(ngx_http_request_t *r, char *src, size_t size)
     }
 
     s->data = (u_char *) (s + 1);
-    ngx_cpymem(s->data, src, size);
+    ngx_memcpy(s->data, src, size);
     s->len = size;
 
     return s;
