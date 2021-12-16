@@ -45,7 +45,12 @@ typedef struct {
 
 typedef struct {
     ngx_array_t      *http_ctxs;
+    void             *callout;
+    uint32_t          callout_id;
 } ngx_http_wasm_ctx_t;
+
+
+ngx_http_wasm_ctx_t *ngx_http_wasm_get_module_ctx(ngx_http_request_t *r);
 
 
 #endif // NGX_HTTP_WASM_CTX_H

@@ -119,6 +119,22 @@ Called when HTTP response headers are received from the upstream. TODO: Headers 
 TODO: pass a correct `num_headers` but not 0.
 
 
+## HTTP calls
+
+### `proxy_on_http_call_response`
+
+* params:
+  - `i32 (uint32_t) context_id`
+  - `i32 (uint32_t) callout_id`
+  - `i32 (size_t) num_headers`
+  - `i32 (size_t) body_size`
+  - `i32 (size_t) num_trailers`
+* returns:
+  - none
+
+Called when the response to the HTTP call (`callout_id`) is received.
+
+
 # Functions implemented in the host environment
 
 All functions implemented in the host environment return `proxy_result_t`, which indicates the
@@ -272,3 +288,26 @@ Sends HTTP response without forwarding request to the upstream.
 Note: we only implement the handling of response_code and response_body.
 
 We only implement `proxy_send_local_response` as an alias because proxy-wasm-go-sdk uses it.
+
+
+## HTTP calls
+
+### `proxy_dispatch_http_call`
+
+* params:
+  - `i32 (const char*) upstream_name_data`
+  - `i32 (size_t) upstream_name_size`
+  - `i32 (const char*) headers_map_data`
+  - `i32 (size_t) headers_map_size`
+  - `i32 (const char*) body_data`
+  - `i32 (size_t) body_size`
+  - `i32 (const char*) trailers_map_data`
+  - `i32 (size_t) trailers_map_size`
+  - `i32 (uint32_t) timeout_milliseconds`
+  - `i32 (uint32_t*) return_callout_id`
+* returns:
+  - `i32 (proxy_result_t) call_result`
+
+Dispatch a HTTP call to upstream (`upstream_name_data`, `upstream_name_size`). Once the response is
+returned to the host, `proxy_on_http_call_response` will be called with a unique call identifier
+(`return_callout_id`).

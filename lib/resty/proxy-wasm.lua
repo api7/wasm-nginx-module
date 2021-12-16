@@ -1,9 +1,12 @@
 local ffi = require("ffi")
 local base = require("resty.core.base")
+local http = require("resty.http")
+local ffi_cast = ffi.cast
 local ffi_gc = ffi.gc
 local ffi_str = ffi.string
 local C = ffi.C
 local get_request = base.get_request
+local get_string_buf = base.get_string_buf
 
 
 base.allows_subsystem("http")
@@ -23,7 +26,15 @@ void ngx_http_wasm_delete_plugin_ctx(void *hwp_ctx);
 
 ngx_int_t ngx_http_wasm_on_http(void *hwp_ctx, void *r, int type);
 ngx_str_t *ngx_http_wasm_fetch_local_body(void *r);
+
+ngx_int_t ngx_http_wasm_call_max_headers_count(void *r);
+void ngx_http_wasm_call_get(void *r, ngx_str_t *method, ngx_str_t *scheme,
+                            ngx_str_t *host, ngx_str_t *path,
+                            ngx_str_t *headers, ngx_str_t *body, int32_t *timeout);
+ngx_int_t ngx_http_wasm_on_http_call_resp(void *hwp_ctx, ngx_http_request_t *r);
 ]]
+local ngx_str_type = ffi.typeof("ngx_str_t*")
+local ngx_str_size = ffi.sizeof("ngx_str_t")
 
 
 local _M = {}
@@ -31,6 +42,8 @@ local HTTP_REQUEST_HEADERS = 1
 --local HTTP_REQUEST_BODY = 2
 local HTTP_RESPONSE_HEADERS = 4
 --local HTTP_RESPONSE_BODY = 8
+
+local RC_NEED_HTTP_CALL = 1
 
 
 function _M.load(name, path)
@@ -76,6 +89,58 @@ function _M.on_configure(plugin, conf)
 end
 
 
+local send_http_call
+do
+    local method_p = ffi.new("ngx_str_t[1]")
+    local scheme_p = ffi.new("ngx_str_t[1]")
+    local host_p = ffi.new("ngx_str_t[1]")
+    local path_p = ffi.new("ngx_str_t[1]")
+    local body_p = ffi.new("ngx_str_t[1]")
+    local timeout_p = ffi.new("int32_t[1]")
+
+    function send_http_call(r)
+        local n = C.ngx_http_wasm_call_max_headers_count(r)
+        local raw_buf = get_string_buf(n * ngx_str_size)
+        local headers = ffi_cast(ngx_str_type, raw_buf)
+
+        C.ngx_http_wasm_call_get(r, method_p, scheme_p, host_p,
+                                 path_p, headers, body_p, timeout_p)
+        local uri = ffi_str(host_p[0].data, host_p[0].len)
+
+        local scheme = "http://"
+        if scheme_p[0].len > 0 then
+            scheme = ffi_str(scheme_p[0].data, scheme_p[0].len) .. "://"
+        end
+
+        uri = scheme .. uri
+        if path_p[0].len > 0 then
+            uri = uri .. ffi_str(path_p[0].data, path_p[0].len)
+        end
+
+        local method = "GET"
+        if method_p[0].len > 0 then
+            method = ffi_str(method_p[0].data, method_p[0].len)
+        end
+
+        local timeout = tonumber(timeout_p[0])
+
+        ngx.log(ngx.NOTICE, "send http request to ", uri, ", method: ", method,
+                ", timeout in ms: ", timeout)
+
+        local httpc = http.new()
+        local res, err = httpc:request_uri(uri, {
+            method = method,
+            -- TODO: handle timeout/method/path/scheme
+        })
+        if not res then
+            ngx.log(ngx.ERR, "http call failed: ", err, ", uri: ", uri)
+        end
+
+        return res
+    end
+end
+
+
 function _M.on_http_request_headers(plugin_ctx)
     if type(plugin_ctx) ~= "cdata" then
         return nil, "bad plugin ctx"
@@ -100,6 +165,20 @@ function _M.on_http_request_headers(plugin_ctx)
         end
 
         ngx.exit(rc)
+    end
+
+    if rc == RC_NEED_HTTP_CALL then
+        local res = send_http_call(r)
+        if not res then
+            -- always trigger http call callback, even the http call failed
+        end
+
+        -- TODO: pass call response
+        local rc = C.ngx_http_wasm_on_http_call_resp(plugin_ctx, r)
+        if rc < 0 then
+            return nil, "failed to run proxy_on_http_call_response"
+        end
+        -- TODO: handle send local & dispatch http call
     end
 
     return true

@@ -20,7 +20,15 @@ static wasm_engine_t *vm_engine;
 static wasmtime_val_t   param_int32[1] = {{ .kind = WASMTIME_I32 }};
 static wasmtime_val_t   param_int32_int32[2] = {{ .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 }};
 static wasmtime_val_t   param_int32_int32_int32[3] = {
-    { .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 }
+    { .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 },
+};
+static wasmtime_val_t   param_int32_int32_int32_int32[4] = {
+    { .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 },
+    { .kind = WASMTIME_I32 },
+};
+static wasmtime_val_t   param_int32_int32_int32_int32_int32[5] = {
+    { .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 },
+    { .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 },
 };
 static ngx_wasm_wasmtime_plugin_t *cur_plugin;
 
@@ -255,6 +263,25 @@ ngx_wasm_wasmtime_call(void *data, ngx_str_t *name, bool has_result, int param_t
         params[1].of.i32 = va_arg(args, int32_t);
         params[2].of.i32 = va_arg(args, int32_t);
         param_num = 3;
+        break;
+
+    case NGX_WASM_PARAM_I32_I32_I32_I32:
+        params = param_int32_int32_int32_int32;
+        params[0].of.i32 = va_arg(args, int32_t);
+        params[1].of.i32 = va_arg(args, int32_t);
+        params[2].of.i32 = va_arg(args, int32_t);
+        params[3].of.i32 = va_arg(args, int32_t);
+        param_num = 4;
+        break;
+
+    case NGX_WASM_PARAM_I32_I32_I32_I32_I32:
+        params = param_int32_int32_int32_int32_int32;
+        params[0].of.i32 = va_arg(args, int32_t);
+        params[1].of.i32 = va_arg(args, int32_t);
+        params[2].of.i32 = va_arg(args, int32_t);
+        params[3].of.i32 = va_arg(args, int32_t);
+        params[4].of.i32 = va_arg(args, int32_t);
+        param_num = 5;
         break;
 
     default:
