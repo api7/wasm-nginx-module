@@ -2,6 +2,12 @@
 #define NGX_HTTP_WASM_TYPES_H
 
 
+typedef struct {
+    ngx_str_t       key;
+    ngx_str_t       value;
+} proxy_wasm_table_elt_t;
+
+
 typedef enum {
     PROXY_RESULT_OK = 0,
     // The result could not be found, e.g. a provided key did not appear in a
@@ -53,6 +59,14 @@ typedef enum {
     PROXY_BUFFER_TYPE_PLUGIN_CONFIGURATION,
     PROXY_BUFFER_TYPE_CALL_DATA,
 } proxy_buffer_type_t;
+
+
+enum {
+    PROXY_WASM_HEADER_PATH = 1,
+    PROXY_WASM_HEADER_METHOD,
+    PROXY_WASM_HEADER_SCHEME,
+    PROXY_WASM_HEADER_AUTHORITY,
+};
 
 
 #endif // NGX_HTTP_WASM_TYPES_H

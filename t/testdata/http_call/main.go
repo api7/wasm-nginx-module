@@ -40,6 +40,10 @@ type httpContext struct {
 
 func (ctx *httpContext) dispatchHttpCall(elem *fastjson.Value) {
 	host := elem.GetStringBytes("host")
+	path := elem.GetStringBytes("path")
+	method := elem.GetStringBytes("method")
+	scheme := elem.GetStringBytes("scheme")
+	headers := elem.GetArray("headers")
 
 	timeout := uint32(elem.GetInt("timeout"))
 	if timeout == 0 {
@@ -58,7 +62,28 @@ func (ctx *httpContext) dispatchHttpCall(elem *fastjson.Value) {
 		}
 	}
 
-	calloutID, err := proxywasm.DispatchHttpCall(string(host), nil, nil, nil,
+	hs := [][2]string{}
+	if len(path) > 0 {
+		hs = append(hs, [2]string{":path", string(path)})
+	}
+	if len(method) > 0 {
+		hs = append(hs, [2]string{":method", string(method)})
+	}
+	if len(scheme) > 0 {
+		hs = append(hs, [2]string{":scheme", string(scheme)})
+	}
+	if len(headers) > 0 {
+		for _, e := range headers {
+			kv := e.GetArray()
+			k := string(kv[0].GetStringBytes())
+			v := string(kv[1].GetStringBytes())
+
+			proxywasm.LogInfof("with header %s: %s", k, v)
+
+			hs = append(hs, [2]string{k, v})
+		}
+	}
+	calloutID, err := proxywasm.DispatchHttpCall(string(host), hs, nil, nil,
 		timeout, ctx.callback)
 	if err != nil {
 		proxywasm.LogErrorf("httpcall failed: %v", err)

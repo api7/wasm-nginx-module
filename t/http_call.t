@@ -75,7 +75,7 @@ location /t {
         local json = require("cjson")
         local wasm = require("resty.proxy-wasm")
         local plugin = assert(wasm.load("plugin", "t/testdata/http_call/main.go.wasm"))
-        local conf = {host = "127.0.0.1:1981"}
+        local conf = {host = "127.0.0.1:1979"}
         local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
         local ok, err = wasm.on_http_request_headers(ctx)
         if not ok then
@@ -222,3 +222,111 @@ location /t {
 qr/called for contextID +/
 --- grep_error_log_out eval
 "called for contextID \n" x 18
+
+
+
+=== TEST 9: path
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_call/main.go.wasm"))
+        local conf = {host = "127.0.0.1:1980"}
+        for _, path in ipairs({"/hello", "/t?x=1", "a"}) do
+            conf.path = path
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_request_headers(ctx))
+        end
+    }
+}
+--- grep_error_log eval
+qr/hit with \[.+\]/
+--- grep_error_log_out
+hit with [GET http://127.0.0.1/hello]
+hit with [GET http://127.0.0.1/t?x=1]
+hit with [GET http://127.0.0.1/a]
+
+
+
+=== TEST 10: method
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_call/main.go.wasm"))
+        local conf = {host = "127.0.0.1:1980"}
+        for _, method in ipairs({"GET", "POST", "DELETE"}) do
+            conf.method = method
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_request_headers(ctx))
+        end
+    }
+}
+--- grep_error_log eval
+qr/hit with \[.+\]/
+--- grep_error_log_out
+hit with [GET http://127.0.0.1/]
+hit with [POST http://127.0.0.1/]
+hit with [DELETE http://127.0.0.1/]
+
+
+
+=== TEST 11: scheme
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_call/main.go.wasm"))
+        local conf = {host = "127.0.0.1:1980", scheme = "http"}
+        local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+        assert(wasm.on_http_request_headers(ctx))
+        local conf = {host = "127.0.0.1:1981", scheme = "https"}
+        local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- grep_error_log eval
+qr/hit with \[.+\]/
+--- grep_error_log_out
+hit with [GET http://127.0.0.1/]
+--- error_log
+http call failed: certificate host mismatch
+
+
+
+=== TEST 12: headers
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_call/main.go.wasm"))
+        local conf = {host = "127.0.0.1:1980"}
+        for _, hdr in ipairs({
+            {{"X-Real-IP", "1.1.1.1"}},
+            {},
+            {{":authority", "wasm.nginx"}},
+            {{"foo", "bar"}, {":authority", "wasm.nginx"}},
+            {{"foo", "bar"}, {"Ver", "V1"}},
+            {{"foo", "bar"}, {"foo", "baz"}},
+            {{"foo", "bar"}, {"foo", "baz"}, {"foo", "boo"}},
+        }) do
+            conf.headers = hdr
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_request_headers(ctx))
+        end
+    }
+}
+--- grep_error_log eval
+qr/hit with headers \[.+\]/
+--- grep_error_log_out
+hit with headers [["host","127.0.0.1:1980"],["x-real-ip","1.1.1.1"]]
+hit with headers [["host","127.0.0.1:1980"]]
+hit with headers [["host","wasm.nginx"]]
+hit with headers [["foo","bar"],["host","wasm.nginx"]]
+hit with headers [["foo","bar"],["host","127.0.0.1:1980"],["ver","V1"]]
+hit with headers [["foo",["bar","baz"]],["host","127.0.0.1:1980"]]
+hit with headers [["foo",["bar","baz","boo"]],["host","127.0.0.1:1980"]]
