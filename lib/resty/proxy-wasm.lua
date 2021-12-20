@@ -14,11 +14,18 @@ base.allows_subsystem("http")
 
 ffi.cdef[[
 typedef unsigned char u_char;
+typedef long ngx_int_t;
+
 typedef struct {
     size_t      len;
     u_char     *data;
 } ngx_str_t;
-typedef long ngx_int_t;
+
+typedef struct {
+    ngx_str_t   key;
+    ngx_str_t   value;
+} proxy_wasm_table_elt_t;
+
 void *ngx_http_wasm_load_plugin(const char *name, size_t name_len, const char *code, size_t size);
 void ngx_http_wasm_unload_plugin(void *plugin);
 void *ngx_http_wasm_on_configure(void *plugin, const char *conf, size_t size);
@@ -30,11 +37,12 @@ ngx_str_t *ngx_http_wasm_fetch_local_body(void *r);
 ngx_int_t ngx_http_wasm_call_max_headers_count(void *r);
 void ngx_http_wasm_call_get(void *r, ngx_str_t *method, ngx_str_t *scheme,
                             ngx_str_t *host, ngx_str_t *path,
-                            ngx_str_t *headers, ngx_str_t *body, int32_t *timeout);
+                            proxy_wasm_table_elt_t *headers, ngx_str_t *body,
+                            int32_t *timeout);
 ngx_int_t ngx_http_wasm_on_http_call_resp(void *hwp_ctx, ngx_http_request_t *r);
 ]]
-local ngx_str_type = ffi.typeof("ngx_str_t*")
-local ngx_str_size = ffi.sizeof("ngx_str_t")
+local ngx_table_type = ffi.typeof("proxy_wasm_table_elt_t*")
+local ngx_table_size = ffi.sizeof("proxy_wasm_table_elt_t")
 
 
 local _M = {}
@@ -100,11 +108,11 @@ do
 
     function send_http_call(r)
         local n = C.ngx_http_wasm_call_max_headers_count(r)
-        local raw_buf = get_string_buf(n * ngx_str_size)
-        local headers = ffi_cast(ngx_str_type, raw_buf)
+        local raw_buf = get_string_buf((n + 1) * ngx_table_size)
+        local headers_buf = ffi_cast(ngx_table_type, raw_buf)
 
         C.ngx_http_wasm_call_get(r, method_p, scheme_p, host_p,
-                                 path_p, headers, body_p, timeout_p)
+                                 path_p, headers_buf, body_p, timeout_p)
         local uri = ffi_str(host_p[0].data, host_p[0].len)
 
         local scheme = "http://"
@@ -114,12 +122,42 @@ do
 
         uri = scheme .. uri
         if path_p[0].len > 0 then
-            uri = uri .. ffi_str(path_p[0].data, path_p[0].len)
+            local path = ffi_str(path_p[0].data, path_p[0].len)
+            if path:byte(1) ~= string.byte("/") then
+                uri = uri .. "/" .. path
+            else
+                uri = uri .. path
+            end
         end
 
         local method = "GET"
         if method_p[0].len > 0 then
             method = ffi_str(method_p[0].data, method_p[0].len)
+        end
+
+        local headers
+        if headers_buf[0].key.len ~= 0 then
+            headers = {}
+
+            local max = tonumber(n - 1)
+            for i = 0, max do
+                local hdr = headers_buf[i]
+                if hdr.key.len == 0 then
+                    break
+                end
+
+                local k = ffi_str(hdr.key.data, hdr.key.len)
+                local v = ffi_str(hdr.value.data, hdr.value.len)
+                if headers[k] then
+                    if type(headers[k]) ~= "table" then
+                        headers[k] = {headers[k], v}
+                    else
+                        table.insert(headers[k], v)
+                    end
+                else
+                    headers[k] = v
+                end
+            end
         end
 
         local timeout = tonumber(timeout_p[0])
@@ -130,7 +168,8 @@ do
         local httpc = http.new()
         local res, err = httpc:request_uri(uri, {
             method = method,
-            -- TODO: handle timeout/method/path/scheme
+            headers = headers,
+            -- TODO: handle timeout
         })
         if not res then
             ngx.log(ngx.ERR, "http call failed: ", err, ", uri: ", uri)

@@ -35,13 +35,30 @@ add_block_preprocessor(sub {
     my $http_config = $block->http_config // '';
     $http_config .= <<_EOC_;
     lua_package_path "lib/?.lua;;";
+    lua_ssl_trusted_certificate ../../certs/test.crt;
     wasm_vm wasmtime;
 
     server {
         listen 1980;
+        listen 1981 ssl;
+        ssl_certificate ../../certs/test.crt;
+        ssl_certificate_key ../../certs/test.key;
+
         location / {
             content_by_lua_block {
-                ngx.log(ngx.WARN, "hit")
+                local cjson = require("cjson")
+                ngx.log(ngx.WARN, "hit with [", ngx.var.request_method, " ",
+                        ngx.var.scheme, "://", ngx.var.host, ngx.var.request_uri, "]")
+                local hdrs = ngx.req.get_headers()
+                hdrs["user-agent"] = nil
+                local res = {}
+                for k, v in pairs(hdrs) do
+                    table.insert(res, {k, v})
+                end
+                table.sort(res, function (a, b)
+                    return a[1] < b[1]
+                end)
+                ngx.log(ngx.WARN, "hit with headers ", cjson.encode(res))
             }
         }
     }
