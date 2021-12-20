@@ -6,6 +6,7 @@
 #include "ngx_http_wasm_state.h"
 #include "ngx_http_wasm_map.h"
 #include "ngx_http_wasm_call.h"
+#include "ngx_http_wasm_ctx.h"
 
 
 typedef struct {
@@ -798,6 +799,53 @@ ngx_http_wasm_resp_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size
 }
 
 
+static int32_t
+ngx_http_wasm_http_call_resp_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size_addr)
+{
+    ngx_log_t               *log;
+    ngx_uint_t               i;
+    ngx_http_wasm_ctx_t     *ctx;
+    proxy_wasm_table_elt_t  *hdr;
+    int                      size = 0;
+    u_char                  *buf;
+    proxy_wasm_map_iter      it;
+
+    log = r->connection->log;
+
+    ctx = ngx_http_wasm_get_module_ctx(r);
+    if (ctx->call_resp_n_header == 0) {
+        return PROXY_RESULT_NOT_FOUND;
+    }
+
+    hdr = ctx->call_resp_headers;
+
+    /* count the size */
+    for (i = 0; i < ctx->call_resp_n_header; i++) {
+        size += hdr[i].key.len + hdr[i].value.len + 2;
+    }
+
+    size += 4 + ctx->call_resp_n_header * 2 * 4;
+    buf = ngx_http_wasm_get_buf_to_write(log, size, addr, size_addr);
+    if (buf == NULL) {
+        return PROXY_RESULT_INVALID_MEMORY_ACCESS;
+    }
+
+    /* get the data */
+    ngx_http_wasm_map_init_map(buf, ctx->call_resp_n_header);
+    ngx_http_wasm_map_init_iter(&it, buf);
+
+    for (i = 0; i < ctx->call_resp_n_header; i++) {
+        char *key, *val;
+
+        ngx_http_wasm_map_reserve(&it, &key, hdr[i].key.len, &val, hdr[i].value.len);
+        ngx_memcpy(key, hdr[i].key.data, hdr[i].key.len);
+        ngx_memcpy(val, hdr[i].value.data, hdr[i].value.len);
+    }
+
+    return PROXY_RESULT_OK;
+}
+
+
 int32_t
 proxy_get_header_map_pairs(int32_t type, int32_t addr, int32_t size_addr)
 {
@@ -811,6 +859,9 @@ proxy_get_header_map_pairs(int32_t type, int32_t addr, int32_t size_addr)
 
     case PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS:
         return ngx_http_wasm_resp_get_headers(r, addr, size_addr);
+
+    case PROXY_MAP_TYPE_HTTP_CALL_RESPONSE_HEADERS:
+        return ngx_http_wasm_http_call_resp_get_headers(r, addr, size_addr);
 
     default:
         return PROXY_RESULT_BAD_ARGUMENT;

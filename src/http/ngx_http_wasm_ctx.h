@@ -4,6 +4,7 @@
 
 #include <ngx_core.h>
 #include "ngx_http_wasm_state.h"
+#include "ngx_http_wasm_types.h"
 
 
 #define PROXY_WASM_ABI_VER_010      0
@@ -47,6 +48,10 @@ typedef struct {
     ngx_array_t      *http_ctxs;
     void             *callout;
     uint32_t          callout_id;
+    /* for http callback */
+    proxy_wasm_table_elt_t  *call_resp_headers;
+    ngx_uint_t               call_resp_n_header;
+    ngx_str_t               *call_resp_body;
 } ngx_http_wasm_ctx_t;
 
 

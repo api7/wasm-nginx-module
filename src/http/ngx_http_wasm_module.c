@@ -690,7 +690,9 @@ ngx_http_wasm_fetch_local_body(ngx_http_request_t *r)
 
 
 ngx_int_t
-ngx_http_wasm_on_http_call_resp(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r)
+ngx_http_wasm_on_http_call_resp(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r,
+                                proxy_wasm_table_elt_t *headers, ngx_uint_t n_header,
+                                ngx_str_t *body)
 {
     ngx_int_t                        rc;
     ngx_log_t                       *log;
@@ -714,6 +716,9 @@ ngx_http_wasm_on_http_call_resp(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_re
     }
 
     ctx = ngx_http_wasm_get_module_ctx(r);
+    ctx->call_resp_headers = headers;
+    ctx->call_resp_n_header = n_header;
+    ctx->call_resp_body = body;
 
     ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
                   "run http callback callout id: %d, plugin ctx id: %d",
@@ -723,7 +728,7 @@ ngx_http_wasm_on_http_call_resp(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_re
                           &proxy_on_http_call_response,
                           false, NGX_WASM_PARAM_I32_I32_I32_I32_I32,
                           hwp_ctx->id, ctx->callout_id,
-                          0, 0, 0);
+                          n_header, 0, 0);
 
     ngx_http_wasm_set_state(NULL);
 

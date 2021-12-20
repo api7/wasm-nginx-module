@@ -15,6 +15,7 @@ base.allows_subsystem("http")
 ffi.cdef[[
 typedef unsigned char u_char;
 typedef long ngx_int_t;
+typedef unsigned long ngx_uint_t;
 
 typedef struct {
     size_t      len;
@@ -39,7 +40,9 @@ void ngx_http_wasm_call_get(void *r, ngx_str_t *method, ngx_str_t *scheme,
                             ngx_str_t *host, ngx_str_t *path,
                             proxy_wasm_table_elt_t *headers, ngx_str_t *body,
                             int32_t *timeout);
-ngx_int_t ngx_http_wasm_on_http_call_resp(void *hwp_ctx, ngx_http_request_t *r);
+ngx_int_t ngx_http_wasm_on_http_call_resp(void *hwp_ctx, ngx_http_request_t *r,
+                                          proxy_wasm_table_elt_t *headers, ngx_uint_t n_header,
+                                          ngx_str_t *body);
 ]]
 local ngx_table_type = ffi.typeof("proxy_wasm_table_elt_t*")
 local ngx_table_size = ffi.sizeof("proxy_wasm_table_elt_t")
@@ -208,12 +211,56 @@ function _M.on_http_request_headers(plugin_ctx)
 
     if rc == RC_NEED_HTTP_CALL then
         local res = send_http_call(r)
-        if not res then
-            -- always trigger http call callback, even the http call failed
+        local headers_buf, body
+        local n = 0
+        -- always trigger http call callback, even the http call failed
+        if res then
+            local hdrs = res.headers
+            for name, value in pairs(hdrs) do
+                if type(value) == "table" then
+                    n = n + #value
+                else
+                    n = n + 1
+                end
+            end
+
+            local i = 0
+            local raw_buf = get_string_buf(n * ngx_table_size)
+            headers_buf = ffi_cast(ngx_table_type, raw_buf)
+            for name, value in pairs(hdrs) do
+                name = string.lower(name)
+                if type(value) == "table" then
+                    for _, v in ipairs(value) do
+                        headers_buf[i].key.data = name
+                        headers_buf[i].key.len = #name
+                        headers_buf[i].value.data = v
+                        headers_buf[i].value.len = #v
+                        i = i + 1
+                    end
+                else
+                    headers_buf[i].key.data = name
+                    headers_buf[i].key.len = #name
+                    headers_buf[i].value.data = value
+                    headers_buf[i].value.len = #value
+                    i = i + 1
+                end
+            end
+
+            headers_buf[n].key.data = ":status"
+            headers_buf[n].key.len = 7
+            local status = tostring(res.status)
+            headers_buf[n].value.data = status
+            headers_buf[n].value.len = #status
+            n = n + 1
+
+            if res.body then
+                body = ffi.new("ngx_str_t")
+                body.data = res.body
+                body.len = #res.body
+            end
         end
 
-        -- TODO: pass call response
-        local rc = C.ngx_http_wasm_on_http_call_resp(plugin_ctx, r)
+        local rc = C.ngx_http_wasm_on_http_call_resp(plugin_ctx, r, headers_buf, n, body)
         if rc < 0 then
             return nil, "failed to run proxy_on_http_call_response"
         end

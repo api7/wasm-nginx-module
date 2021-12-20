@@ -2,6 +2,9 @@
 #define NGX_HTTP_WASM_TYPES_H
 
 
+#include <ngx_core.h>
+
+
 typedef struct {
     ngx_str_t       key;
     ngx_str_t       value;
