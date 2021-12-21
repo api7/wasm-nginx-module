@@ -71,6 +71,12 @@ add_block_preprocessor(sub {
                     return a[1] < b[1]
                 end)
                 ngx.log(ngx.WARN, "hit with headers ", cjson.encode(res))
+
+                if ngx.var.request_method == "POST" then
+                    ngx.req.read_body()
+                    local body = ngx.req.get_body_data()
+                    ngx.log(ngx.WARN, "hit with body ", body)
+                end
             }
         }
     }

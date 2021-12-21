@@ -46,6 +46,7 @@ func (ctx *httpContext) dispatchHttpCall(elem *fastjson.Value) {
 	method := elem.GetStringBytes("method")
 	scheme := elem.GetStringBytes("scheme")
 	headers := elem.GetArray("headers")
+	body := elem.GetStringBytes("body")
 
 	timeout := uint32(elem.GetInt("timeout"))
 	if timeout == 0 {
@@ -104,7 +105,8 @@ func (ctx *httpContext) dispatchHttpCall(elem *fastjson.Value) {
 			hs = append(hs, [2]string{k, v})
 		}
 	}
-	calloutID, err := proxywasm.DispatchHttpCall(string(host), hs, nil, nil,
+
+	calloutID, err := proxywasm.DispatchHttpCall(string(host), hs, body, nil,
 		timeout, ctx.callback)
 	if err != nil {
 		proxywasm.LogErrorf("httpcall failed: %v", err)

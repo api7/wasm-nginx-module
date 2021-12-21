@@ -174,4 +174,10 @@ ngx_http_wasm_call_get(ngx_http_request_t *r, ngx_str_t *method, ngx_str_t *sche
 
     /* mark the end */
     headers->key.len = 0;
+
+    if (callout->body) {
+        *body = *callout->body;
+    } else {
+        body->len = 0;
+    }
 }
