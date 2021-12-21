@@ -843,27 +843,7 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
     log = r->connection->log;
     part = &r->headers_in.headers.part;
     header = part->elts;
-
-    /* if '-' is given, we need to compare with a copy */
-    if (memchr(key, '_', key_size) != NULL) {
-        key_buf = ngx_alloc(key_size, log);
-        if (key_buf == NULL) {
-            ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
-            return PROXY_RESULT_INTERNAL_FAILURE;
-        }
-
-        for (i = 0; i < (ngx_uint_t) key_size; i++) {
-            if (key[i] == '_') {
-                key_buf[i] = '-';
-
-            } else {
-                key_buf[i] = key[i];
-            }
-        }
-
-    } else {
-        key_buf = (u_char *) key;
-    }
+    key_buf = (u_char *) key;
 
     if (key_size > 0 && key_buf[0] == ':') {
         for (i = 0; i < PROXY_WASM_HEADER_STATIC_TABLE_ENTRIES; i++) {
@@ -930,10 +910,6 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
     }
 
 done:
-
-    if (key_buf != (u_char *) key) {
-        ngx_free(key_buf);
-    }
 
     if (val == NULL) {
         return PROXY_RESULT_NOT_FOUND;
