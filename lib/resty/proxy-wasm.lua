@@ -160,6 +160,11 @@ do
             end
         end
 
+        local body
+        if body_p[0].len > 0 then
+            body = ffi_str(body_p[0].data, body_p[0].len)
+        end
+
         local timeout = tonumber(timeout_p[0])
 
         ngx.log(ngx.NOTICE, "send http request to ", uri, ", method: ", method,
@@ -170,6 +175,7 @@ do
         local res, err = httpc:request_uri(uri, {
             method = method,
             headers = headers,
+            body = body,
         })
         if not res then
             ngx.log(ngx.ERR, "http call failed: ", err, ", uri: ", uri)

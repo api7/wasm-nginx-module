@@ -365,3 +365,29 @@ location /t {
 --- error_log
 http call failed: timeout
 called for contextID =
+
+
+
+=== TEST 15: body
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_call/main.go.wasm"))
+        local conf = {host = "127.0.0.1:1980", method = "POST"}
+        for _, e in ipairs({
+            "blahblah",
+            "",
+        }) do
+            conf.body = e
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_request_headers(ctx))
+        end
+    }
+}
+--- grep_error_log eval
+qr/hit with body \w+/
+--- grep_error_log_out
+hit with body blahblah
+hit with body nil
