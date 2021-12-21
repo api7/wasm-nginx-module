@@ -52,6 +52,12 @@ ngx_http_wasm_call_register(ngx_http_request_t *r, ngx_str_t *up, u_char *map_da
         return NGX_DECLINED;
     }
 
+    if (timeout < 0) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                      "invalid timeout: %d", timeout);
+        return NGX_ERROR;
+    }
+
     callout->timeout_ms = timeout;
     callout->up = up;
     callout->map_data = map_data;

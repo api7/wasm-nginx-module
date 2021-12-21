@@ -169,10 +169,10 @@ do
                 ", timeout in ms: ", timeout)
 
         local httpc = http.new()
+        httpc:set_timeout(timeout)
         local res, err = httpc:request_uri(uri, {
             method = method,
             headers = headers,
-            -- TODO: handle timeout
         })
         if not res then
             ngx.log(ngx.ERR, "http call failed: ", err, ", uri: ", uri)
