@@ -1,6 +1,8 @@
 package main
 
 import (
+	"sort"
+
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm"
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
 	"github.com/valyala/fastjson"
@@ -59,6 +61,25 @@ func (ctx *httpContext) dispatchHttpCall(elem *fastjson.Value) {
 	case "call_and_send":
 		if err := proxywasm.SendHttpResponse(503, nil, nil, -1); err != nil {
 			proxywasm.LogErrorf("send http failed: %v", err)
+		}
+	case "headers":
+		ctx.callback = func(numHeaders int, bodySize int, numTrailers int) {
+			proxywasm.LogWarnf("get numHeaders %d", numHeaders)
+			hs, err := proxywasm.GetHttpCallResponseHeaders()
+			if err != nil {
+				proxywasm.LogErrorf("callback err: %v", err)
+				return
+			}
+
+			sort.Slice(hs, func(i, j int) bool {
+				if hs[i][0] == hs[j][0] {
+					return hs[i][1] < hs[j][1]
+				}
+				return hs[i][0] < hs[j][0]
+			})
+			for _, h := range hs {
+				proxywasm.LogWarnf("get header %s: %s", h[0], h[1])
+			}
 		}
 	}
 

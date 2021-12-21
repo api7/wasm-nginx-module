@@ -50,6 +50,12 @@ add_block_preprocessor(sub {
             }
         }
 
+        location /repeated_headers {
+            content_by_lua_block {
+                ngx.header["foo"] = {"bar", "baz"}
+            }
+        }
+
         location / {
             content_by_lua_block {
                 local cjson = require("cjson")
