@@ -44,6 +44,12 @@ add_block_preprocessor(sub {
         ssl_certificate ../../certs/test.crt;
         ssl_certificate_key ../../certs/test.key;
 
+        location /sleep {
+            content_by_lua_block {
+                ngx.sleep(1)
+            }
+        }
+
         location / {
             content_by_lua_block {
                 local cjson = require("cjson")
