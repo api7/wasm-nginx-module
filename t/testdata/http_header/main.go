@@ -59,7 +59,7 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		proxywasm.LogWarnf("get request header: %v", res)
 
 	case "req_hdr_get_caseless":
-		res, err := proxywasm.GetHttpRequestHeader("x_api")
+		res, err := proxywasm.GetHttpRequestHeader("x-api")
 		if err != nil {
 			proxywasm.LogErrorf("error get request header: %v", err)
 			return types.ActionContinue
