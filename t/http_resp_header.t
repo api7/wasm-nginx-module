@@ -253,3 +253,48 @@ qr/get response header \S+ \S+/
 get response header content-type text/plain,
 get response header content-length 0,
 get response header connection keep-alive,
+
+
+
+=== TEST 14: get header, abnormal
+--- config
+location /t {
+    return 200;
+    header_filter_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local conf = {action = 'resp_hdr_get_abnormal'}
+        for _, e in ipairs({
+            ""
+        }) do
+            conf.header = e
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_response_headers(ctx))
+        end
+    }
+}
+--- error_log
+error status returned by host: not found
+
+
+
+=== TEST 15: set header, abnormal
+--- config
+location /t {
+    return 200;
+    header_filter_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local conf = {action = 'resp_hdr_set_abnormal'}
+        for _, e in ipairs({
+            {"", ""}
+        }) do
+            conf.header = e[1]
+            conf.value = e[2]
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_response_headers(ctx))
+        end
+    }
+}

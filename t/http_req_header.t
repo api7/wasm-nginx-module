@@ -389,3 +389,48 @@ location /t {
 qr/get request scheme: \S+/
 --- grep_error_log_out
 get request scheme: http,
+
+
+
+=== TEST 21: get header, abnormal
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local conf = {action = 'req_hdr_get_abnormal'}
+        for _, e in ipairs({
+            ""
+        }) do
+            conf.header = e
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_request_headers(ctx))
+        end
+    }
+}
+--- more_headers
+X-API: foo
+--- error_log
+error status returned by host: not found
+
+
+
+=== TEST 22: set header, abnormal
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local conf = {action = 'req_hdr_set_abnormal'}
+        for _, e in ipairs({
+            {"", ""}
+        }) do
+            conf.header = e[1]
+            conf.value = e[2]
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_request_headers(ctx))
+        end
+    }
+}
