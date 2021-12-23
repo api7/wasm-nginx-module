@@ -82,6 +82,18 @@ func (ctx *httpContext) dispatchHttpCall(elem *fastjson.Value) {
 				proxywasm.LogWarnf("get header %s: %s", h[0], h[1])
 			}
 		}
+	case "body":
+		ctx.callback = func(numHeaders int, bodySize int, numTrailers int) {
+			proxywasm.LogWarnf("get bodySize %d", bodySize)
+			start := elem.GetInt("start")
+			size := elem.GetInt("size")
+			body, err := proxywasm.GetHttpCallResponseBody(start, size)
+			if err != nil {
+				proxywasm.LogErrorf("callback err: %v", err)
+				return
+			}
+			proxywasm.LogWarnf("get body [%s]", string(body))
+		}
 	}
 
 	hs := [][2]string{}
