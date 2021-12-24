@@ -78,3 +78,90 @@ location /t {
 }
 --- error_log
 callback err: error status returned by host: not found
+
+
+
+=== TEST 4: get body, no body
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_call/main.go.wasm"))
+        local conf = {host = "127.0.0.1:1980", action = "body"}
+        local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- error_log
+get bodySize 0
+error status returned by host: not found
+
+
+
+=== TEST 5: get body
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_call/main.go.wasm"))
+        local conf = {host = "127.0.0.1:1980", action = "body", path = "/?body=helloworld"}
+        for _, e in ipairs({
+            {0, 2},
+            {1, 1},
+            {1, 2},
+            {0, 10},
+            {1, 9},
+            {8, 2},
+            {9, 1},
+            {1, 10},
+        }) do
+            conf.start = e[1]
+            conf.size = e[2]
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_request_headers(ctx))
+        end
+    }
+}
+--- grep_error_log eval
+qr/get body \[\w+\]/
+--- grep_error_log_out
+get body [he]
+get body [e]
+get body [el]
+get body [helloworld]
+get body [elloworld]
+get body [ld]
+get body [d]
+get body [elloworld]
+
+
+
+=== TEST 6: get body, bad cases
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_call/main.go.wasm"))
+        local conf = {host = "127.0.0.1:1980", action = "body", path = "/?body=helloworld"}
+        for _, e in ipairs({
+            {-1, 2},
+            {1, 0},
+            {1, -1},
+            {10, 2},
+        }) do
+            conf.start = e[1]
+            conf.size = e[2]
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_request_headers(ctx))
+        end
+    }
+}
+--- error_log
+[error]
+--- grep_error_log eval
+qr/error status returned by host: bad argument/
+--- grep_error_log_out eval
+"error status returned by host: bad argument\n" x 4

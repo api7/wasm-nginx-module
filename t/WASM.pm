@@ -77,6 +77,10 @@ add_block_preprocessor(sub {
                     local body = ngx.req.get_body_data()
                     ngx.log(ngx.WARN, "hit with body ", body)
                 end
+
+                if ngx.var.arg_body then
+                    ngx.print(ngx.var.arg_body)
+                end
             }
         }
     }

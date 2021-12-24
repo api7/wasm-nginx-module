@@ -410,13 +410,16 @@ proxy_log(int32_t log_level, int32_t addr, int32_t size)
 
 
 int32_t
-proxy_get_buffer_bytes(int32_t type, int32_t start, int32_t length,
+proxy_get_buffer_bytes(int32_t type, int32_t start, int32_t size,
                        int32_t addr, int32_t size_addr)
 {
     ngx_log_t            *log;
     const u_char         *data;
     int32_t               len;
     const ngx_str_t      *conf;
+
+    ngx_http_request_t      *r;
+    ngx_http_wasm_ctx_t     *ctx;
 
     log = ngx_http_wasm_get_log();
 
@@ -427,8 +430,33 @@ proxy_get_buffer_bytes(int32_t type, int32_t start, int32_t length,
         len = conf->len;
         break;
 
+    case PROXY_BUFFER_TYPE_HTTP_CALL_RESPONSE_BODY:
+        must_get_req(r);
+        ctx = ngx_http_wasm_get_module_ctx(r);
+        data = ctx->call_resp_body->data;
+        len = ctx->call_resp_body->len;
+        break;
+
     default:
         return PROXY_RESULT_UNIMPLEMENTED;
+    }
+
+    if (len == 0) {
+        return PROXY_RESULT_NOT_FOUND;
+    }
+
+    if (type != PROXY_BUFFER_TYPE_PLUGIN_CONFIGURATION) {
+        /* configuration is fetched as a whole */
+        if (start < 0 || size <= 0 || start >= len) {
+            return PROXY_RESULT_BAD_ARGUMENT;
+        }
+
+        if (start + size > len) {
+            size = len - start;
+        }
+
+        data = data + start;
+        len = size;
     }
 
     return ngx_http_wasm_copy_to_wasm(log, data, len, addr, size_addr);

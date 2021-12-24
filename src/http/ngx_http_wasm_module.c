@@ -728,7 +728,7 @@ ngx_http_wasm_on_http_call_resp(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_re
                           &proxy_on_http_call_response,
                           false, NGX_WASM_PARAM_I32_I32_I32_I32_I32,
                           hwp_ctx->id, ctx->callout_id,
-                          n_header, 0, 0);
+                          n_header, body == NULL ? 0 : body->len, 0);
 
     ngx_http_wasm_set_state(NULL);
 
