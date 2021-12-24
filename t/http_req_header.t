@@ -374,7 +374,7 @@ get request method: DELETE,
 
 
 
-=== TEST 20: get schema
+=== TEST 20: get schema(http2)
 --- http2
 --- config
 location /t {
@@ -434,3 +434,20 @@ location /t {
         end
     }
 }
+
+
+
+=== TEST 23: get schema(http)
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_scheme_get'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- grep_error_log eval
+qr/get request scheme: \S+/
+--- grep_error_log_out
+get request scheme: http,
