@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm"
 	"github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types"
+	"github.com/valyala/fastjson"
 )
 
 func main() {
@@ -37,7 +38,22 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		return types.ActionContinue
 	}
 
-	action := string(data)
+	var action string
+	var conf *fastjson.Value
+	if data[0] == '{' {
+		var p fastjson.Parser
+		conf, err = p.ParseBytes(data)
+		if err != nil {
+			proxywasm.LogErrorf("erorr decoding plugin configuration: %v", err)
+			return types.ActionContinue
+		}
+
+		action = string(conf.GetStringBytes("action"))
+
+	} else {
+		action = string(data)
+	}
+
 	switch action {
 	case "req_hdr_get_all":
 		hdrs, err := proxywasm.GetHttpRequestHeaders()
@@ -66,6 +82,15 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		}
 		proxywasm.LogWarnf("get request header: %v", res)
 
+	case "req_hdr_get_abnormal":
+		hdr := string(conf.GetStringBytes("header"))
+		res, err := proxywasm.GetHttpRequestHeader(hdr)
+		if err != nil {
+			proxywasm.LogErrorf("error get request header: %v", err)
+			return types.ActionContinue
+		}
+		proxywasm.LogWarnf("get request header: %v", res)
+
 	case "req_hdr_set":
 		proxywasm.ReplaceHttpRequestHeader("foo", "bar")
 
@@ -74,6 +99,15 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 
 	case "req_hdr_del":
 		proxywasm.RemoveHttpRequestHeader("foo")
+
+	case "req_hdr_set_abnormal":
+		hdr := string(conf.GetStringBytes("header"))
+		v := string(conf.GetStringBytes("value"))
+		err := proxywasm.ReplaceHttpRequestHeader(hdr, v)
+		if err != nil {
+			proxywasm.LogErrorf("error set request header: %v", err)
+			return types.ActionContinue
+		}
 
 	case "req_path_get":
 		res, err := proxywasm.GetHttpRequestHeader(":path")
@@ -110,7 +144,22 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 		return types.ActionContinue
 	}
 
-	action := string(data)
+	var action string
+	var conf *fastjson.Value
+	if data[0] == '{' {
+		var p fastjson.Parser
+		conf, err = p.ParseBytes(data)
+		if err != nil {
+			proxywasm.LogErrorf("erorr decoding plugin configuration: %v", err)
+			return types.ActionContinue
+		}
+
+		action = string(conf.GetStringBytes("action"))
+
+	} else {
+		action = string(data)
+	}
+
 	if action == "resp_hdr_get_all" {
 		hdrs, err := proxywasm.GetHttpResponseHeaders()
 		if err != nil {
@@ -140,6 +189,15 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 		proxywasm.RemoveHttpResponseHeader("add")
 	case "resp_hdr_del_miss":
 		proxywasm.RemoveHttpResponseHeader("aa")
+	case "resp_hdr_set_abnormal":
+		hdr := string(conf.GetStringBytes("header"))
+		v := string(conf.GetStringBytes("value"))
+		err := proxywasm.ReplaceHttpResponseHeader(hdr, v)
+		if err != nil {
+			proxywasm.LogErrorf("error set request header: %v", err)
+			return types.ActionContinue
+		}
+
 	case "resp_hdr_get":
 		res, err := proxywasm.GetHttpResponseHeader("add")
 		if err != nil {
@@ -157,6 +215,14 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 	case "resp_hdr_get_first":
 		proxywasm.AddHttpResponseHeader("add", "bar")
 		res, err := proxywasm.GetHttpResponseHeader("add")
+		if err != nil {
+			proxywasm.LogErrorf("error get response header: %v", err)
+			return types.ActionContinue
+		}
+		proxywasm.LogWarnf("get response header: %v", res)
+	case "resp_hdr_get_abnormal":
+		hdr := string(conf.GetStringBytes("header"))
+		res, err := proxywasm.GetHttpResponseHeader(hdr)
 		if err != nil {
 			proxywasm.LogErrorf("error get response header: %v", err)
 			return types.ActionContinue
