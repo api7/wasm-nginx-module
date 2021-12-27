@@ -417,11 +417,10 @@ proxy_set_property(int32_t path_data, int32_t path_size,
 
                 p = (u_char *) vv + sizeof(ngx_http_variable_value_t);
                 ngx_memcpy(p, value, size);
-                value = p;
 
                 vv->valid = 1;
                 vv->not_found = 0;
-                vv->data = value;
+                vv->data = (u_char *) p;
                 vv->len = size;
             } else {
                 vv = ngx_palloc(r->pool, sizeof(ngx_http_variable_value_t));
@@ -454,17 +453,16 @@ proxy_set_property(int32_t path_data, int32_t path_size,
             vv->no_cacheable = 0;
 
             if (value != NULL && size) {
-                u_char *p = ngx_palloc(r->pool, size);
+                p = ngx_palloc(r->pool, size);
                 if (p == NULL) {
                     ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
                     return PROXY_RESULT_INTERNAL_FAILURE;
                 }
-
                 ngx_memcpy(p, value, size);
-                value = p;
+                
                 vv->valid = 1;
                 vv->not_found = 0;
-                vv->data = value;
+                vv->data = p;
                 vv->len = size;
             } else {
                 vv->valid = 0;
