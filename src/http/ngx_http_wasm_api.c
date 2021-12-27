@@ -921,11 +921,10 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
                     if (r->connection->ssl) {
                         val = scheme_https.data;
                         val_len = scheme_https.len;
-                        break;
+                    }else {
+                        val = scheme_http.data;
+                        val_len = scheme_http.len;
                     }
-
-                    val = scheme_http.data;
-                    val_len = scheme_http.len;
                     break;
 
                 default:
