@@ -369,7 +369,7 @@ proxy_set_property(int32_t path_data, int32_t path_size,
     ngx_http_variable_t         *v;
     ngx_http_variable_value_t   *vv;
     ngx_http_core_main_conf_t   *cmcf;
-    
+
     log = ngx_http_wasm_get_log();
     must_get_req(r);
 
@@ -384,7 +384,7 @@ proxy_set_property(int32_t path_data, int32_t path_size,
     }
 
     /*
-     * Request a piece of temporary memory to store the 
+     * Request a piece of temporary memory to store the
      * lowercase characters of the property key.
      */
     key_lowcase = ngx_http_wasm_get_string_buf(r->pool, path_size);
@@ -430,8 +430,8 @@ proxy_set_property(int32_t path_data, int32_t path_size,
                     return PROXY_RESULT_INTERNAL_FAILURE;
                 }
 
-                /* 
-                 * Clear the value of the variable if the 
+                /*
+                 * Clear the value of the variable if the
                  * value to be set is empty.
                  */
                 vv->valid = 0;
@@ -439,13 +439,13 @@ proxy_set_property(int32_t path_data, int32_t path_size,
                 vv->data = NULL;
                 vv->len = 0;
             }
-            
+
             vv->no_cacheable = 0;
             v->set_handler(r, vv, v->data);
             return PROXY_RESULT_OK;
         }
 
-        /* 
+        /*
          * set_handler is not set, try to get it from
          * indexed the variable list.
          */
@@ -480,7 +480,7 @@ proxy_set_property(int32_t path_data, int32_t path_size,
             "assigned a value: %s", key_lowcase);
         return NGX_ERROR;
     }
-        
+
     ngx_log_error(NGX_LOG_ERR, log, 0, "variable not found: %s", key_lowcase);
     return PROXY_RESULT_NOT_FOUND;
 }
