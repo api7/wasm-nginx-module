@@ -37,7 +37,7 @@ get property: request_uri = /t?test=yeah
 location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
-        local plugin = wasm.load("plugin", "t/testdata/property/main.go.wasm")
+        local plugin = wasm.load("plugin", "t/testdata/property/get.go.wasm")
         local plugin_ctx, err = wasm.on_configure(plugin, "none")
         assert(wasm.on_http_request_headers(plugin_ctx))
     }
@@ -46,3 +46,65 @@ location /t {
 GET /t?test=yeah
 --- error_log
 error get property: error status returned by host: not found
+
+
+
+=== TEST 3: set_property (custom variable: success)
+--- config
+location /t {
+    set $for_test origin_value;
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = wasm.load("plugin", "t/testdata/property/set.go.wasm")
+        local plugin_ctx, err = wasm.on_configure(plugin, 'for_test|new_value')
+        ngx.say(ngx.var.for_test)
+        ngx.say(#ngx.var.for_test)
+        assert(wasm.on_http_request_headers(plugin_ctx))
+        ngx.say(ngx.var.for_test)
+        ngx.say(#ngx.var.for_test)
+    }
+}
+--- request
+GET /t
+--- response_body
+origin_value
+12
+new_value
+9
+--- error_log
+set property success: for_test = new_value
+
+
+
+=== TEST 4: set_property (host: unchangeable)
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = wasm.load("plugin", "t/testdata/property/set.go.wasm")
+        local plugin_ctx, err = wasm.on_configure(plugin, 'host|test.com')
+        assert(wasm.on_http_request_headers(plugin_ctx))
+    }
+}
+--- request
+GET /t
+--- error_log
+variable not changeable: host
+
+
+
+=== TEST 5: set_property (non-existent variable)
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = wasm.load("plugin", "t/testdata/property/set.go.wasm")
+        local plugin_ctx, err = wasm.on_configure(plugin, 'other|new_value')
+        assert(wasm.on_http_request_headers(plugin_ctx))
+    }
+}
+--- request
+GET /t
+--- error_log
+variable not found: other
+error set property: error status returned by host: not found
