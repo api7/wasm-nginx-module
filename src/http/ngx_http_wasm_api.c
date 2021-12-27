@@ -946,8 +946,13 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
                     break;
 
                 case PROXY_WASM_HEADER_SCHEME:
-                    val = r->schema.data;
-                    val_len = r->schema.len;
+                    if (r->connection->ssl) {
+                        val = scheme_https.data;
+                        val_len = scheme_https.len;
+                    } else {
+                        val = scheme_http.data;
+                        val_len = scheme_http.len;
+                    }
                     break;
 
                 default:
