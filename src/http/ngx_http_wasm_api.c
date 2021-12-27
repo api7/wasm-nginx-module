@@ -459,7 +459,7 @@ proxy_set_property(int32_t path_data, int32_t path_size,
                     return PROXY_RESULT_INTERNAL_FAILURE;
                 }
                 ngx_memcpy(p, value, size);
-                
+
                 vv->valid = 1;
                 vv->not_found = 0;
                 vv->data = p;
