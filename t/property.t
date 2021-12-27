@@ -13,7 +13,7 @@ location /t {
         }
 
         local wasm = require("resty.proxy-wasm")
-        local plugin = wasm.load("plugin", "t/testdata/property/main.go.wasm")
+        local plugin = wasm.load("plugin", "t/testdata/property/get.go.wasm")
         for _, case in ipairs(test_cases) do
             local plugin_ctx, err = wasm.on_configure(plugin, case)
             assert(wasm.on_http_request_headers(plugin_ctx))
