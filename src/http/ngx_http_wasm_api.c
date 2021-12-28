@@ -395,7 +395,7 @@ proxy_set_property(int32_t path_data, int32_t path_size,
 
     if (result != NGX_OK)
     {
-        ngx_log_error(NGX_LOG_ERR, log, 0, *errmsg);
+        ngx_log_error(NGX_LOG_ERR, log, 0, (const char *)errmsg);
 
         if (ngx_strstrn(errmsg, "not found for writing", 20) != NULL)
         {
