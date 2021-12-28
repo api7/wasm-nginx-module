@@ -89,7 +89,7 @@ location /t {
 --- request
 GET /t
 --- error_log
-variable not changeable: host
+variable "host" not changeable
 
 
 
@@ -106,5 +106,5 @@ location /t {
 --- request
 GET /t
 --- error_log
-variable not found: other
+variable "other" not found for writing
 error set property: error status returned by host: not found
