@@ -21,6 +21,11 @@ jobs:
         with:
           node-version: 10.0.0
 
+      - name: Set up Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: "1.17.5"
+
       - name: Install rust
         uses: actions-rs/toolchain@v1
         with:
@@ -53,6 +58,7 @@ jobs:
 
       - name: Script
         run: |
+          sudo export GOROOT=/opt/hostedtoolcache/go/1.17.5/x64
           sudo make build.go.testdata
 
           pushd ./t/testdata/assemblyscript && npm install && npm run asbuild && popd
