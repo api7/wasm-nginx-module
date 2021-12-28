@@ -54,7 +54,7 @@ jobs:
           OR_PREFIX=$OPENRESTY_PREFIX cc_opt="-Werror" ./build-apisix-base.sh latest
 
       - name: Set up tmate session
-        uses: actions/action-tmate@v3
+        uses: mxschmitt/action-tmate@v3
 
       - name: Script
         run: |
