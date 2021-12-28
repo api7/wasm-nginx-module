@@ -58,8 +58,8 @@ jobs:
 
       - name: Script
         run: |
-          sudo export GOROOT=/opt/hostedtoolcache/go/1.17.5/x64
-          sudo make build.go.testdata
+          sudo chown -R runner:root ~/.cache
+          make build.go.testdata
 
           pushd ./t/testdata/assemblyscript && npm install && npm run asbuild && popd
           pushd ./t/testdata/rust && cargo build --target=wasm32-wasi && popd
