@@ -390,7 +390,7 @@ proxy_set_property(int32_t path_data, int32_t path_size,
     errmsg = key_lowcase + path_size;
 
     /* Call the functions in lua-resty-core to set the variables. */
-    result = ngx_http_lua_ffi_var_set(r, (u_char *) key, path_size, 
+    result = ngx_http_lua_ffi_var_set(r, (u_char *) key, path_size,
         key_lowcase, (u_char *) value, size, errmsg, &errlen);
 
     if (result != NGX_OK)
@@ -403,7 +403,7 @@ proxy_set_property(int32_t path_data, int32_t path_size,
         }
         return PROXY_RESULT_INTERNAL_FAILURE;
     }
-    
+
     return PROXY_RESULT_OK;
 }
 
