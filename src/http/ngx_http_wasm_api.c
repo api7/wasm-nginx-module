@@ -67,6 +67,9 @@ static int (*set_req_header) (ngx_http_request_t *r,
     const char *key, size_t key_len, const char *value,
     size_t value_len, ngx_str_t *mvals, size_t mvals_len,
     int override, char **errmsg);
+static int (*set_variable)(ngx_http_request_t *r, u_char *name_data,
+    size_t name_len, u_char *lowcase_buf, u_char *value, size_t value_len,
+    u_char *errbuf, size_t *errlen);
 
 static char *err_bad_ctx = "API disabled in the current context";
 static char *err_no_req_ctx = "no request ctx found";
@@ -125,6 +128,7 @@ ngx_http_wasm_resolve_symbol(void)
     must_resolve_symbol(get_req_headers_count, ngx_http_lua_ffi_req_get_headers_count);
     must_resolve_symbol(get_req_headers, ngx_http_lua_ffi_req_get_headers);
     must_resolve_symbol(set_req_header, ngx_http_lua_ffi_req_set_header);
+    must_resolve_symbol(set_variable, ngx_http_lua_ffi_var_set);
 
     return NGX_OK;
 }
@@ -390,15 +394,13 @@ proxy_set_property(int32_t path_data, int32_t path_size,
     errmsg = key_lowcase + path_size;
 
     /* Call the functions in lua-resty-core to set the variables. */
-    result = ngx_http_lua_ffi_var_set(r, (u_char *) key, path_size,
-        key_lowcase, (u_char *) value, size, errmsg, &errlen);
+    result = set_variable(r, (u_char *) key, path_size, key_lowcase,
+        (u_char *) value, size, errmsg, &errlen);
 
-    if (result != NGX_OK)
-    {
+    if (result != NGX_OK) {
         ngx_log_error(NGX_LOG_ERR, log, 0, (const char *)errmsg);
 
-        if (ngx_strstrn(errmsg, "not found for writing", 20) != NULL)
-        {
+        if (ngx_strstrn(errmsg, "not found for writing", 20) != NULL) {
             return PROXY_RESULT_NOT_FOUND;
         }
         return PROXY_RESULT_INTERNAL_FAILURE;
