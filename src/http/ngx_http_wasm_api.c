@@ -359,16 +359,14 @@ int32_t
 proxy_set_property(int32_t path_data, int32_t path_size,
                    int32_t data, int32_t size)
 {
-    u_char                      *p;
+    int                          result;
     u_char                      *key_lowcase;
+    u_char                      *errmsg;
+    size_t                       errlen = 256;
     ngx_log_t                   *log;
-    ngx_uint_t                   hash;
     const u_char                *key;
     const u_char                *value;
     ngx_http_request_t          *r;
-    ngx_http_variable_t         *v;
-    ngx_http_variable_value_t   *vv;
-    ngx_http_core_main_conf_t   *cmcf;
 
     log = ngx_http_wasm_get_log();
     must_get_req(r);
@@ -385,102 +383,23 @@ proxy_set_property(int32_t path_data, int32_t path_size,
 
     /*
      * Request a piece of temporary memory to store the
-     * lowercase characters of the property key.
+     * lowercase characters of the property key and errmsg
+     * of variable setting.
      */
-    key_lowcase = ngx_http_wasm_get_string_buf(r->pool, path_size);
-    hash = ngx_hash_strlow(key_lowcase, (u_char *) key, path_size);
+    key_lowcase = ngx_palloc(r->pool, path_size + errlen);
+    errmsg = key_lowcase + path_size;
 
-    /*
-     * Get the ngx_http_core_module main configuration block
-     * and search variables from it.
-     */
-    cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
-    v = ngx_hash_find(&cmcf->variables_hash, hash, key_lowcase, path_size);
+    /* Call the functions in lua-resty-core to set the variables. */
+    result = ngx_http_lua_ffi_var_set(r, (u_char *) key, path_size, 
+        key_lowcase, (u_char *) value, size, errmsg, &errlen);
 
-    if (v) {
-        /* variable cannot be changed */
-        if (!(v->flags & NGX_HTTP_VAR_CHANGEABLE)) {
-            ngx_log_error(NGX_LOG_ERR, log, 0,
-                "variable not changeable: %s", key_lowcase);
-            return NGX_ERROR;
-        }
-
-        /* some variables has set_handler */
-        if (v->set_handler) {
-            if (value != NULL && size) {
-                vv = ngx_palloc(r->pool, sizeof(ngx_http_variable_value_t)
-                                + size);
-                if (vv == NULL) {
-                    ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
-                    return PROXY_RESULT_INTERNAL_FAILURE;
-                }
-
-                p = (u_char *) vv + sizeof(ngx_http_variable_value_t);
-                ngx_memcpy(p, value, size);
-
-                vv->valid = 1;
-                vv->not_found = 0;
-                vv->data = (u_char *) p;
-                vv->len = size;
-            } else {
-                vv = ngx_palloc(r->pool, sizeof(ngx_http_variable_value_t));
-                if (vv == NULL) {
-                    ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
-                    return PROXY_RESULT_INTERNAL_FAILURE;
-                }
-
-                /*
-                 * Clear the value of the variable if the
-                 * value to be set is empty.
-                 */
-                vv->valid = 0;
-                vv->not_found = 1;
-                vv->data = NULL;
-                vv->len = 0;
-            }
-
-            vv->no_cacheable = 0;
-            v->set_handler(r, vv, v->data);
-            return PROXY_RESULT_OK;
-        }
-
-        /*
-         * set_handler is not set, try to get it from
-         * indexed the variable list.
-         */
-        if (v->flags & NGX_HTTP_VAR_INDEXED) {
-            vv = &r->variables[v->index];
-            vv->no_cacheable = 0;
-
-            if (value != NULL && size) {
-                p = ngx_palloc(r->pool, size);
-                if (p == NULL) {
-                    ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
-                    return PROXY_RESULT_INTERNAL_FAILURE;
-                }
-                ngx_memcpy(p, value, size);
-
-                vv->valid = 1;
-                vv->not_found = 0;
-                vv->data = p;
-                vv->len = size;
-            } else {
-                vv->valid = 0;
-                vv->not_found = 1;
-                vv->data = NULL;
-                vv->len = 0;
-            }
-
-            return PROXY_RESULT_OK;
-        }
-
-        ngx_log_error(NGX_LOG_ERR, log, 0, "variable cannot be "
-            "assigned a value: %s", key_lowcase);
-        return NGX_ERROR;
+    if (result != NGX_OK)
+    {
+        ngx_log_error(NGX_LOG_ERR, log, 0, errmsg);
+        return PROXY_RESULT_INTERNAL_FAILURE;
     }
-
-    ngx_log_error(NGX_LOG_ERR, log, 0, "variable not found: %s", key_lowcase);
-    return PROXY_RESULT_NOT_FOUND;
+    
+    return PROXY_RESULT_OK;
 }
 
 
