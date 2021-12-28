@@ -1,6 +1,6 @@
 module github.com/api7/wasm-nginx-module
 
-go 1.15
+go 1.17
 
 require (
 	github.com/tetratelabs/proxy-wasm-go-sdk v0.16.0

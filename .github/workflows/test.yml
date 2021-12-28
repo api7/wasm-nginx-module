@@ -21,11 +21,6 @@ jobs:
         with:
           node-version: 10.0.0
 
-      - name: Set up Golang
-        uses: actions/setup-go@v2
-        with:
-          go-version: "1.17"
-
       - name: Install rust
         uses: actions-rs/toolchain@v1
         with:
@@ -39,8 +34,8 @@ jobs:
           sudo apt install -y cpanminus build-essential libncurses5-dev libreadline-dev libssl-dev perl luarocks
           sudo luarocks install lua-resty-http > build.log 2>&1 || (cat build.log && exit 1)
 
-          wget https://github.com/tinygo-org/tinygo/releases/download/v0.21.0/tinygo_0.21.0_amd64.deb
-          sudo dpkg -i tinygo_0.21.0_amd64.deb
+          wget https://github.com/tinygo-org/tinygo/releases/download/v0.20.0/tinygo_0.20.0_amd64.deb
+          sudo dpkg -i tinygo_0.20.0_amd64.deb
 
       - name: Before install
         run: |
@@ -52,9 +47,6 @@ jobs:
           wget https://raw.githubusercontent.com/api7/apisix-build-tools/master/build-apisix-base.sh
           chmod +x build-apisix-base.sh
           OR_PREFIX=$OPENRESTY_PREFIX cc_opt="-Werror" ./build-apisix-base.sh latest
-
-      - name: Set up tmate session
-        uses: mxschmitt/action-tmate@v3
 
       - name: Script
         run: |
