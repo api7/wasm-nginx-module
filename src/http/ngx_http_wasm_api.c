@@ -380,6 +380,7 @@ proxy_set_property(int32_t path_data, int32_t path_size,
     if (key == NULL) {
         return PROXY_RESULT_INVALID_MEMORY_ACCESS;
     }
+
     value = ngx_wasm_vm.get_memory(log, data, size);
     if (key == NULL) {
         return PROXY_RESULT_INVALID_MEMORY_ACCESS;
@@ -395,7 +396,7 @@ proxy_set_property(int32_t path_data, int32_t path_size,
 
     /* Call the functions in lua-resty-core to set the variables. */
     result = set_variable(r, (u_char *) key, path_size, key_lowcase,
-        (u_char *) value, size, errmsg, &errlen);
+                          (u_char *) value, size, errmsg, &errlen);
 
     if (result != NGX_OK) {
         ngx_log_error(NGX_LOG_ERR, log, 0, (const char *)errmsg);
