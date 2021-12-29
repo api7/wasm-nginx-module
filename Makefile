@@ -8,7 +8,7 @@ install:
 
 .PHONY: build.go.testdata
 build.go.testdata:
-	@find ./t/testdata -type f -name "main.go" | xargs -Ip tinygo build -o p.wasm -scheduler=none -target=wasi p
+	@find ./t/testdata -type f -name "*.go" | xargs -Ip tinygo build -o p.wasm -scheduler=none -target=wasi p
 
 .PHONY: build.testdata
 build.testdata:
