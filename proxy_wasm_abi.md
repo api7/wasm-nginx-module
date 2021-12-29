@@ -269,7 +269,7 @@ Remove key (`key_data`, `key_size`) from a given map (`map_type`).
 Get data such as Nginx variables and plugin ID, Use path_data as key and write the value of the obtained variable to res_data.
 
 
-### `proxy_get_property`
+### `proxy_set_property`
 
 * params:
   - `i32 (const char*) path_data`
