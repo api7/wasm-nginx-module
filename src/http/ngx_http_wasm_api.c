@@ -404,6 +404,7 @@ proxy_set_property(int32_t path_data, int32_t path_size,
         if (ngx_strstrn(errmsg, "not found for writing", 20) != NULL) {
             return PROXY_RESULT_NOT_FOUND;
         }
+
         return PROXY_RESULT_INTERNAL_FAILURE;
     }
 
