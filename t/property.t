@@ -64,8 +64,6 @@ location /t {
         ngx.say(#ngx.var.for_test)
     }
 }
---- request
-GET /t
 --- response_body
 origin_value
 12
@@ -86,8 +84,6 @@ location /t {
         assert(wasm.on_http_request_headers(plugin_ctx))
     }
 }
---- request
-GET /t
 --- error_log
 variable "host" not changeable
 
@@ -103,8 +99,6 @@ location /t {
         assert(wasm.on_http_request_headers(plugin_ctx))
     }
 }
---- request
-GET /t
 --- error_log
 variable "other" not found for writing
 error set property: error status returned by host: not found
