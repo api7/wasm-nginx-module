@@ -390,7 +390,7 @@ proxy_set_property(int32_t path_data, int32_t path_size,
      * lowercase characters of the property key and errmsg
      * of variable setting.
      */
-    key_lowcase = ngx_palloc(r->pool, path_size + errlen);
+    key_lowcase = ngx_http_wasm_get_string_buf(r->pool, path_size + errlen);
     errmsg = key_lowcase + path_size;
 
     /* Call the functions in lua-resty-core to set the variables. */
