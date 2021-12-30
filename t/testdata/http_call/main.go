@@ -53,6 +53,28 @@ func (ctx *httpContext) dispatchHttpCall(elem *fastjson.Value) {
 		timeout = 5000
 	}
 
+	hs := [][2]string{}
+	if len(path) > 0 {
+		hs = append(hs, [2]string{":path", string(path)})
+	}
+	if len(method) > 0 {
+		hs = append(hs, [2]string{":method", string(method)})
+	}
+	if len(scheme) > 0 {
+		hs = append(hs, [2]string{":scheme", string(scheme)})
+	}
+	if len(headers) > 0 {
+		for _, e := range headers {
+			kv := e.GetArray()
+			k := string(kv[0].GetStringBytes())
+			v := string(kv[1].GetStringBytes())
+
+			proxywasm.LogInfof("with header %s: %s", k, v)
+
+			hs = append(hs, [2]string{k, v})
+		}
+	}
+
 	action := string(elem.GetStringBytes("action"))
 	switch action {
 	case "panic":
@@ -94,28 +116,45 @@ func (ctx *httpContext) dispatchHttpCall(elem *fastjson.Value) {
 			}
 			proxywasm.LogWarnf("get body [%s]", string(body))
 		}
-	}
-
-	hs := [][2]string{}
-	if len(path) > 0 {
-		hs = append(hs, [2]string{":path", string(path)})
-	}
-	if len(method) > 0 {
-		hs = append(hs, [2]string{":method", string(method)})
-	}
-	if len(scheme) > 0 {
-		hs = append(hs, [2]string{":scheme", string(scheme)})
-	}
-	if len(headers) > 0 {
-		for _, e := range headers {
-			kv := e.GetArray()
-			k := string(kv[0].GetStringBytes())
-			v := string(kv[1].GetStringBytes())
-
-			proxywasm.LogInfof("with header %s: %s", k, v)
-
-			hs = append(hs, [2]string{k, v})
+	case "then_send":
+		ctx.callback = func(numHeaders int, bodySize int, numTrailers int) {
+			if err := proxywasm.SendHttpResponse(503, nil, nil, -1); err != nil {
+				proxywasm.LogErrorf("send http failed: %v", err)
+			}
 		}
+	case "then_call":
+		ctx.callback = func(numHeaders int, bodySize int, numTrailers int) {
+			cb := func(numHeaders int, bodySize int, numTrailers int) {
+				if err := proxywasm.SendHttpResponse(403, nil, nil, -1); err != nil {
+					proxywasm.LogErrorf("send http failed: %v", err)
+				}
+			}
+			calloutID, err := proxywasm.DispatchHttpCall(string(host), hs, body, nil,
+				timeout, cb)
+			if err != nil {
+				proxywasm.LogErrorf("httpcall failed: %v", err)
+				return
+			}
+			proxywasm.LogInfof("httpcall calloutID %d, pluginCtxID %d", calloutID, ctx.pluginCtxID)
+		}
+	case "then_call_again":
+		cb_builder := func(next func(numHeaders int, bodySize int, numTrailers int)) func(numHeaders int, bodySize int, numTrailers int) {
+			return func(numHeaders int, bodySize int, numTrailers int) {
+				calloutID, err := proxywasm.DispatchHttpCall(string(host), hs, body, nil,
+					timeout, next)
+				if err != nil {
+					proxywasm.LogErrorf("httpcall failed: %v", err)
+					return
+				}
+				proxywasm.LogInfof("httpcall calloutID %d, pluginCtxID %d", calloutID, ctx.pluginCtxID)
+			}
+		}
+		cb := func(numHeaders int, bodySize int, numTrailers int) {
+			if err := proxywasm.SendHttpResponse(401, nil, nil, -1); err != nil {
+				proxywasm.LogErrorf("send http failed: %v", err)
+			}
+		}
+		ctx.callback = cb_builder(cb_builder(cb))
 	}
 
 	calloutID, err := proxywasm.DispatchHttpCall(string(host), hs, body, nil,

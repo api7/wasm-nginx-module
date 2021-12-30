@@ -165,3 +165,66 @@ location /t {
 qr/error status returned by host: bad argument/
 --- grep_error_log_out eval
 "error status returned by host: bad argument\n" x 4
+
+
+
+=== TEST 7: call then send
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_call/main.go.wasm"))
+        local conf = {host = "127.0.0.1:1980", action = "then_send"}
+        local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- error_code: 503
+--- grep_error_log eval
+qr/run http callback callout id: \d+, plugin ctx id: \d+/
+--- grep_error_log_out
+run http callback callout id: 0, plugin ctx id: 1
+
+
+
+=== TEST 8: call then call
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_call/main.go.wasm"))
+        local conf = {host = "127.0.0.1:1980", action = "then_call"}
+        local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- error_code: 403
+--- grep_error_log eval
+qr/run http callback callout id: \d+, plugin ctx id: \d+/
+--- grep_error_log_out
+run http callback callout id: 0, plugin ctx id: 1
+run http callback callout id: 1, plugin ctx id: 1
+
+
+
+=== TEST 9: call x 3
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_call/main.go.wasm"))
+        local conf = {host = "127.0.0.1:1980", action = "then_call_again"}
+        local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- error_code: 401
+--- grep_error_log eval
+qr/run http callback callout id: \d+, plugin ctx id: \d+/
+--- grep_error_log_out
+run http callback callout id: 0, plugin ctx id: 1
+run http callback callout id: 1, plugin ctx id: 1
+run http callback callout id: 2, plugin ctx id: 1
