@@ -600,6 +600,35 @@ ngx_http_wasm_fetch_http_ctx(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_reque
 }
 
 
+static ngx_int_t
+ngx_http_wasm_handle_rc_before_proxy(ngx_http_wasm_main_conf_t *wmcf,
+                                     ngx_http_wasm_ctx_t *ctx, ngx_int_t rc)
+{
+    int32_t code = wmcf->code;
+
+    /* reset code for next use */
+    wmcf->code = 0;
+
+    /* the http call is prior to other operation */
+    if (ctx->callout) {
+        return RC_NEED_HTTP_CALL;
+    }
+
+    if (rc < 0) {
+        return rc;
+    }
+
+    if (code >= 100) {
+        /* Return given http response instead of reaching the upstream.
+         * The body will be fetched later by ngx_http_wasm_fetch_local_body
+         * */
+        return code;
+    }
+
+    return rc;
+}
+
+
 ngx_int_t
 ngx_http_wasm_on_http(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r,
                       ngx_http_wasm_phase_t type)
@@ -649,28 +678,7 @@ ngx_http_wasm_on_http(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r
 
     ngx_http_wasm_set_state(NULL);
 
-    /* the http call is prior to other operation */
-    if (ctx->callout) {
-        return RC_NEED_HTTP_CALL;
-    }
-
-    if (rc < 0) {
-        return rc;
-    }
-
-    if (wmcf->code >= 100) {
-        int32_t code = wmcf->code;
-
-        /* reset code for next use */
-        wmcf->code = 0;
-
-        /* Return given http response instead of reaching the upstream.
-         * The body will be fetched later by ngx_http_wasm_fetch_local_body
-         * */
-        return code;
-    }
-
-    return rc;
+    return ngx_http_wasm_handle_rc_before_proxy(wmcf, ctx, rc);
 }
 
 
@@ -698,8 +706,10 @@ ngx_http_wasm_on_http_call_resp(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_re
     ngx_log_t                       *log;
     ngx_http_wasm_ctx_t             *ctx;
     ngx_http_wasm_http_ctx_t        *http_ctx;
+    ngx_http_wasm_main_conf_t       *wmcf;
 
     log = r->connection->log;
+    wmcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
 
     if (!ngx_http_wasm_vm_inited) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "miss wasm_vm configuration");
@@ -732,5 +742,5 @@ ngx_http_wasm_on_http_call_resp(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_re
 
     ngx_http_wasm_set_state(NULL);
 
-    return rc;
+    return ngx_http_wasm_handle_rc_before_proxy(wmcf, ctx, rc);
 }
