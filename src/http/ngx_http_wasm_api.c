@@ -4,9 +4,9 @@
 #include "ngx_http_wasm_api.h"
 #include "ngx_http_wasm_module.h"
 #include "ngx_http_wasm_state.h"
-#include "ngx_http_wasm_map.h"
 #include "ngx_http_wasm_call.h"
 #include "ngx_http_wasm_ctx.h"
+#include "proxy_wasm/proxy_wasm_map.h"
 
 
 typedef struct {
@@ -550,8 +550,8 @@ proxy_send_http_response(int32_t res_code,
             return PROXY_RESULT_INVALID_MEMORY_ACCESS;
         }
 
-        ngx_http_wasm_map_init_iter(&it, p);
-        while (ngx_http_wasm_map_next(&it, &key, &key_len, &val, &val_len)) {
+        proxy_wasm_map_init_iter(&it, p);
+        while (proxy_wasm_map_next(&it, &key, &key_len, &val, &val_len)) {
             rc = ngx_http_wasm_set_resp_header(r, key, key_len, 0, val, val_len, 0);
             if (rc != NGX_OK) {
                 return PROXY_RESULT_BAD_ARGUMENT;
@@ -690,12 +690,12 @@ ngx_http_wasm_req_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size_
     }
 
     /* get the data */
-    ngx_http_wasm_map_init_map(buf, count + PROXY_WASM_HEADER_STATIC_TABLE_ENTRIES);
-    ngx_http_wasm_map_init_iter(&it, buf);
+    proxy_wasm_map_init_map(buf, count + PROXY_WASM_HEADER_STATIC_TABLE_ENTRIES);
+    proxy_wasm_map_init_iter(&it, buf);
 
     for (i = 0; i < count; i++) {
-        ngx_http_wasm_map_reserve(&it, &key, headers[i].key.len,
-                                  &val, headers[i].value.len);
+        proxy_wasm_map_reserve(&it, &key, headers[i].key.len,
+                               &val, headers[i].value.len);
         /* the header key is already lowercase */
         ngx_memcpy(key, headers[i].key.data, headers[i].key.len);
         ngx_memcpy(val, headers[i].value.data, headers[i].value.len);
@@ -713,8 +713,8 @@ ngx_http_wasm_req_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size_
         wh = &wasm_h2_header_static_table[i];
         s = wh->getter(r);
 
-        ngx_http_wasm_map_reserve(&it, &key, wh->name.len,
-                                  &val, s->len);
+        proxy_wasm_map_reserve(&it, &key, wh->name.len,
+                               &val, s->len);
         ngx_memcpy(key, wh->name.data, wh->name.len);
         ngx_memcpy(val, s->data, s->len);
     }
@@ -811,8 +811,8 @@ ngx_http_wasm_resp_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size
     }
 
     /* get the data */
-    ngx_http_wasm_map_init_map(buf, count);
-    ngx_http_wasm_map_init_iter(&it, buf);
+    proxy_wasm_map_init_map(buf, count);
+    proxy_wasm_map_init_iter(&it, buf);
 
     for (i = 0; /* void */; i++) {
 
@@ -834,8 +834,8 @@ ngx_http_wasm_resp_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size
 
         /* nginx does not even bother initializing output header entry's
          * "lowcase_key" field. so we cannot count on that at all. */
-        ngx_http_wasm_map_reserve(&it, &lowcase_key, header[i].key.len,
-                                  &val, header[i].value.len);
+        proxy_wasm_map_reserve(&it, &lowcase_key, header[i].key.len,
+                               &val, header[i].value.len);
         ngx_strlow((u_char *) lowcase_key, header[i].key.data, header[i].key.len);
         ngx_memcpy(val, header[i].value.data, header[i].value.len);
 
@@ -845,31 +845,31 @@ ngx_http_wasm_resp_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size
     }
 
     if (r->headers_out.content_type.len) {
-        ngx_http_wasm_map_reserve(&it, &lowcase_key, sizeof("content-type") - 1,
-                                  &val, r->headers_out.content_type.len);
+        proxy_wasm_map_reserve(&it, &lowcase_key, sizeof("content-type") - 1,
+                               &val, r->headers_out.content_type.len);
         ngx_memcpy(lowcase_key, "content-type", sizeof("content-type") - 1);
         ngx_memcpy(val, r->headers_out.content_type.data, r->headers_out.content_type.len);
     }
 
     if (content_length_hdr != NULL) {
-        ngx_http_wasm_map_reserve(&it, &lowcase_key, sizeof("content-length") - 1,
-                                  &val, content_length_hdr_len);
+        proxy_wasm_map_reserve(&it, &lowcase_key, sizeof("content-length") - 1,
+                               &val, content_length_hdr_len);
         ngx_memcpy(lowcase_key, "content-length", sizeof("content-length") - 1);
         ngx_memcpy(val, content_length_hdr, content_length_hdr_len);
     }
 
     if (r->headers_out.status == NGX_HTTP_SWITCHING_PROTOCOLS) {
-        ngx_http_wasm_map_reserve_literal(&it, "connection", "upgrade");
+        proxy_wasm_map_reserve_literal(&it, "connection", "upgrade");
 
     } else if (r->keepalive) {
-        ngx_http_wasm_map_reserve_literal(&it, "connection", "keep-alive");
+        proxy_wasm_map_reserve_literal(&it, "connection", "keep-alive");
 
     } else {
-        ngx_http_wasm_map_reserve_literal(&it, "connection", "close");
+        proxy_wasm_map_reserve_literal(&it, "connection", "close");
     }
 
     if (r->chunked) {
-        ngx_http_wasm_map_reserve_literal(&it, "transfer-encoding", "chunked");
+        proxy_wasm_map_reserve_literal(&it, "transfer-encoding", "chunked");
     }
 
     return PROXY_RESULT_OK;
@@ -908,13 +908,13 @@ ngx_http_wasm_http_call_resp_get_headers(ngx_http_request_t *r, int32_t addr, in
     }
 
     /* get the data */
-    ngx_http_wasm_map_init_map(buf, ctx->call_resp_n_header);
-    ngx_http_wasm_map_init_iter(&it, buf);
+    proxy_wasm_map_init_map(buf, ctx->call_resp_n_header);
+    proxy_wasm_map_init_iter(&it, buf);
 
     for (i = 0; i < ctx->call_resp_n_header; i++) {
         char *key, *val;
 
-        ngx_http_wasm_map_reserve(&it, &key, hdr[i].key.len, &val, hdr[i].value.len);
+        proxy_wasm_map_reserve(&it, &key, hdr[i].key.len, &val, hdr[i].value.len);
         ngx_memcpy(key, hdr[i].key.data, hdr[i].key.len);
         ngx_memcpy(val, hdr[i].value.data, hdr[i].value.len);
     }

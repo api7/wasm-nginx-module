@@ -1,4 +1,4 @@
-#include "ngx_http_wasm_map.h"
+#include "proxy_wasm_map.h"
 
 
 /**
@@ -10,14 +10,14 @@
 
 
 void
-ngx_http_wasm_map_init_map(const u_char *map_data, int32_t len)
+proxy_wasm_map_init_map(const u_char *map_data, int32_t len)
 {
     *(int32_t *) map_data = len;
 }
 
 
 void
-ngx_http_wasm_map_init_iter(proxy_wasm_map_iter *it, const u_char *map_data)
+proxy_wasm_map_init_iter(proxy_wasm_map_iter *it, const u_char *map_data)
 {
     it->idx = 0;
     it->len = *(int32_t *) map_data;
@@ -27,7 +27,7 @@ ngx_http_wasm_map_init_iter(proxy_wasm_map_iter *it, const u_char *map_data)
 
 
 bool
-ngx_http_wasm_map_next(proxy_wasm_map_iter *it, char **key, int32_t *key_len,
+proxy_wasm_map_next(proxy_wasm_map_iter *it, char **key, int32_t *key_len,
                        char **val, int32_t *val_len)
 {
     if (it->idx == it->len) {
@@ -50,7 +50,7 @@ ngx_http_wasm_map_next(proxy_wasm_map_iter *it, char **key, int32_t *key_len,
 
 
 bool
-ngx_http_wasm_map_reserve(proxy_wasm_map_iter *it, char **key, int32_t key_len,
+proxy_wasm_map_reserve(proxy_wasm_map_iter *it, char **key, int32_t key_len,
                           char **val, int32_t val_len)
 {
     if (it->idx == it->len) {
@@ -77,7 +77,7 @@ ngx_http_wasm_map_reserve(proxy_wasm_map_iter *it, char **key, int32_t key_len,
 
 
 bool
-ngx_http_wasm_map_reserve_literal_with_len(proxy_wasm_map_iter *it,
+proxy_wasm_map_reserve_literal_with_len(proxy_wasm_map_iter *it,
                                            const char *key, size_t key_len,
                                            const char *val, size_t val_len)
 {

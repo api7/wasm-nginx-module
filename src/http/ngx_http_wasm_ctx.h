@@ -4,7 +4,7 @@
 
 #include <ngx_core.h>
 #include "ngx_http_wasm_state.h"
-#include "ngx_http_wasm_types.h"
+#include "proxy_wasm/proxy_wasm_types.h"
 
 
 #define PROXY_WASM_ABI_VER_010      0

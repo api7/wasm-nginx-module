@@ -5,7 +5,7 @@ ngx_module_srcs=" \
     $ngx_addon_dir/src/http/ngx_http_wasm_api.c \
     $ngx_addon_dir/src/http/ngx_http_wasm_call.c \
     $ngx_addon_dir/src/http/ngx_http_wasm_state.c \
-    $ngx_addon_dir/src/http/ngx_http_wasm_map.c \
+    $ngx_addon_dir/src/proxy_wasm/proxy_wasm_map.c \
     $ngx_addon_dir/src/vm/wasmtime.c \
     $ngx_addon_dir/src/vm/vm.c \
 "

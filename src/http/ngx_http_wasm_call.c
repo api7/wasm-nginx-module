@@ -1,8 +1,8 @@
 #include <ngx_http.h>
 #include "ngx_http_wasm_call.h"
 #include "ngx_http_wasm_ctx.h"
-#include "ngx_http_wasm_map.h"
-#include "ngx_http_wasm_types.h"
+#include "proxy_wasm/proxy_wasm_types.h"
+#include "proxy_wasm/proxy_wasm_map.h"
 
 
 typedef struct {
@@ -86,7 +86,7 @@ ngx_http_wasm_call_max_headers_count(ngx_http_request_t *r)
 
     ctx = ngx_http_wasm_get_module_ctx(r);
     callout = ctx->callout;
-    ngx_http_wasm_map_init_iter(&it, callout->map_data);
+    proxy_wasm_map_init_iter(&it, callout->map_data);
 
     return it.len;
 }
@@ -112,9 +112,9 @@ ngx_http_wasm_call_get(ngx_http_request_t *r, ngx_str_t *method, ngx_str_t *sche
     *host = *callout->up;
     *timeout = callout->timeout_ms;
 
-    ngx_http_wasm_map_init_iter(&it, callout->map_data);
+    proxy_wasm_map_init_iter(&it, callout->map_data);
 
-    while (ngx_http_wasm_map_next(&it, &key, &key_len, &val, &val_len)) {
+    while (proxy_wasm_map_next(&it, &key, &key_len, &val, &val_len)) {
         if (key_len == 0) {
             continue;
         }
