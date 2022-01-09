@@ -5,7 +5,7 @@
 #include <wasm.h>
 #include <wasmtime.h>
 #include <ngx_core.h>
-#include "ngx_http_wasm_types.h"
+#include "proxy_wasm/proxy_wasm_types.h"
 
 
 #define MAX_WASM_API_ARG  12

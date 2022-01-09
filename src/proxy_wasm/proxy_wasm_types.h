@@ -1,5 +1,5 @@
-#ifndef NGX_HTTP_WASM_TYPES_H
-#define NGX_HTTP_WASM_TYPES_H
+#ifndef PROXY_WASM_TYPES_H
+#define PROXY_WASM_TYPES_H
 
 
 #include <ngx_core.h>
@@ -72,4 +72,4 @@ enum {
 };
 
 
-#endif // NGX_HTTP_WASM_TYPES_H
+#endif // PROXY_WASM_TYPES_H
