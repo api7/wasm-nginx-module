@@ -16,7 +16,7 @@ jobs:
 
       - name: Install luacheck
         run: |
-          sudo apt install -y luarocks
+          curl https://raw.githubusercontent.com/apache/apisix/master/utils/linux-install-luarocks.sh -sL | bash -
           sudo luarocks install luacheck > build.log 2>&1 || (cat build.log && exit 1)
 
       - name: Setup Nodejs env

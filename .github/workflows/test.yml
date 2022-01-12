@@ -36,7 +36,8 @@ jobs:
 
       - name: Get dependencies
         run: |
-          sudo apt install -y cpanminus build-essential libncurses5-dev libreadline-dev libssl-dev perl luarocks
+          sudo apt install -y cpanminus build-essential libncurses5-dev libreadline-dev libssl-dev perl
+          curl https://raw.githubusercontent.com/apache/apisix/master/utils/linux-install-luarocks.sh -sL | bash -
           sudo luarocks install lua-resty-http > build.log 2>&1 || (cat build.log && exit 1)
 
           wget https://github.com/tinygo-org/tinygo/releases/download/v0.20.0/tinygo_0.20.0_amd64.deb
