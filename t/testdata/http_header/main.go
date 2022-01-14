@@ -205,6 +205,13 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 			return types.ActionContinue
 		}
 		proxywasm.LogWarnf("get response header: %v", res)
+    case "resp_hdr_get_status":
+        res, err := proxywasm.GetHttpResponseHeader(":status")
+        if err != nil {
+            proxywasm.LogErrorf("error get response header: %v", err)
+            return types.ActionContinue
+        }
+        proxywasm.LogWarnf("get response header: :status %v", res)
 	case "resp_hdr_get_miss":
 		res, err := proxywasm.GetHttpResponseHeader("")
 		if err != nil {

@@ -72,4 +72,10 @@ enum {
 };
 
 
+enum {
+    PROXY_WASM_REQUEST_HEADER = 1,
+    PROXY_WASM_RESPONSE_HEADER,
+};
+
+
 #endif // PROXY_WASM_TYPES_H
