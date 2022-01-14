@@ -666,7 +666,7 @@ ngx_http_wasm_get_status(ngx_http_request_t *r)
         return NULL;
     }
 
-    sc->len = ngx_sprintf(p, "%ui", r->headers_out.status) - p;
+    sc->len = ngx_sprintf(p, "%ui", status) - p;
     sc->data = p;
 
     return sc;
@@ -675,7 +675,7 @@ ngx_http_wasm_get_status(ngx_http_request_t *r)
 
 static ngx_str_t *
 ngx_http_wasm_get_h2_header(ngx_http_request_t *r, u_char *key_data, size_t key_size) {
-    ngx_str_t                 *h;
+    ngx_str_t                 *h = NULL;
     ngx_uint_t                 i;
     ngx_http_wasm_h2_header_t *wh;
 
