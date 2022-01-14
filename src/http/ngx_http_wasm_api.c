@@ -90,10 +90,10 @@ static ngx_str_t scheme_https = ngx_string("https");
 static ngx_str_t scheme_http = ngx_string("http");
 
 static ngx_http_wasm_h2_header_t wasm_h2_header_static_table[] = {
-        {ngx_string(":path"),   PROXY_WASM_REQUEST_HEADER, ngx_http_wasm_get_path},
-        {ngx_string(":method"), PROXY_WASM_REQUEST_HEADER, ngx_http_wasm_get_method},
-        {ngx_string(":scheme"), PROXY_WASM_REQUEST_HEADER, ngx_http_wasm_get_scheme},
-        {ngx_string(":status"), PROXY_WASM_RESPONSE_HEADER, ngx_http_wasm_get_status},
+    {ngx_string(":path"),   PROXY_WASM_REQUEST_HEADER, ngx_http_wasm_get_path},
+    {ngx_string(":method"), PROXY_WASM_REQUEST_HEADER, ngx_http_wasm_get_method},
+    {ngx_string(":scheme"), PROXY_WASM_REQUEST_HEADER, ngx_http_wasm_get_scheme},
+    {ngx_string(":status"), PROXY_WASM_RESPONSE_HEADER, ngx_http_wasm_get_status},
 };
 
 
