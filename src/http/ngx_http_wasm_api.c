@@ -682,11 +682,11 @@ ngx_http_wasm_get_h2_header(ngx_http_request_t *r, u_char *key_data, size_t key_
 
     if (ty == PROXY_WASM_REQUEST_HEADER) {
         entries = (ngx_uint_t) PROXY_WASM_REQ_HEADER_STATIC_TABLE_ENTRIES;
-        whs = &wasm_h2_req_header_static_table;
+        whs = &wasm_h2_req_header_static_table[0];
 
     } else if (ty == PROXY_WASM_RESPONSE_HEADER) {
         entries = (ngx_uint_t) PROXY_WASM_RESP_HEADER_STATIC_TABLE_ENTRIES;
-        whs = &wasm_h2_resp_header_static_table;
+        whs = &wasm_h2_resp_header_static_table[0];
 
     } else {
         return NULL;
