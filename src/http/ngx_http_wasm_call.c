@@ -20,10 +20,10 @@ typedef struct {
 
 
 static proxy_wasm_h2_header_t proxy_wasm_h2_headers[] = {
-    {ngx_string(":path"),   PROXY_WASM_HEADER_PATH},
-    {ngx_string(":method"), PROXY_WASM_HEADER_METHOD},
-    {ngx_string(":scheme"), PROXY_WASM_HEADER_SCHEME},
-    {ngx_string(":authority"), PROXY_WASM_HEADER_AUTHORITY},
+    {ngx_string(":path"),   PROXY_WASM_REQUEST_HEADER_PATH},
+    {ngx_string(":method"), PROXY_WASM_REQUEST_HEADER_METHOD},
+    {ngx_string(":scheme"), PROXY_WASM_REQUEST_HEADER_SCHEME},
+    {ngx_string(":authority"), PROXY_WASM_REQUEST_HEADER_AUTHORITY},
     {ngx_null_string, 0 }
 };
 
@@ -132,22 +132,22 @@ ngx_http_wasm_call_get(ngx_http_request_t *r, ngx_str_t *method, ngx_str_t *sche
                 if (ngx_strncasecmp((u_char *) key, wh->name.data, wh->name.len) == 0) {
 
                     switch (wh->ty) {
-                    case PROXY_WASM_HEADER_PATH:
+                    case PROXY_WASM_REQUEST_HEADER_PATH:
                         path->data = (u_char *) val;
                         path->len = val_len;
                         goto next;
 
-                    case PROXY_WASM_HEADER_METHOD:
+                    case PROXY_WASM_REQUEST_HEADER_METHOD:
                         method->data = (u_char *) val;
                         method->len = val_len;
                         goto next;
 
-                    case PROXY_WASM_HEADER_SCHEME:
+                    case PROXY_WASM_REQUEST_HEADER_SCHEME:
                         scheme->data = (u_char *) val;
                         scheme->len = val_len;
                         goto next;
 
-                    case PROXY_WASM_HEADER_AUTHORITY:
+                    case PROXY_WASM_REQUEST_HEADER_AUTHORITY:
                         headers->key.data = (u_char *) "host";
                         headers->key.len = 4;
                         headers->value.data = (u_char *) val;
