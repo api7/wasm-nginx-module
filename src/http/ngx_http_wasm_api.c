@@ -738,6 +738,8 @@ ngx_http_wasm_req_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size_
     proxy_wasm_map_iter        it;
     char                      *key;
     char                      *val;
+    ngx_str_t                 *s;
+    ngx_http_wasm_h2_header_t *wh;
 
     log = r->connection->log;
 
@@ -769,9 +771,6 @@ ngx_http_wasm_req_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size_
 
     /* count pseudo headers :path, :method, :scheme */
     for (i = 0; i < (ngx_int_t) PROXY_WASM_REQ_HEADER_STATIC_TABLE_ENTRIES; i++) {
-        ngx_str_t                   *s;
-        ngx_http_wasm_h2_header_t   *wh;
-
         wh = &wasm_h2_req_header_static_table[i];
         s = wh->getter(r);
         size += wh->name.len + 1 + s->len + 1;
@@ -801,9 +800,6 @@ ngx_http_wasm_req_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size_
 
     /* get pseudo headers :path, :method, :scheme */
     for (i = 0; i < (ngx_int_t) PROXY_WASM_REQ_HEADER_STATIC_TABLE_ENTRIES; i++) {
-        ngx_str_t                   *s;
-        ngx_http_wasm_h2_header_t   *wh;
-
         wh = &wasm_h2_req_header_static_table[i];
         s = wh->getter(r);
 
