@@ -662,7 +662,7 @@ ngx_http_wasm_get_status(ngx_http_request_t *r)
 
     sc = &status_ok;
 
-    p = ngx_palloc(r->pool, NGX_INT_T_LEN);
+    p = ngx_http_wasm_get_string_buf(r->pool, sizeof(u_char));
     if (p == NULL) {
         return NULL;
     }
