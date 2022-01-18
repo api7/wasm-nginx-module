@@ -88,7 +88,8 @@ static char *str_buf[STR_BUF_SIZE] = {0};
 
 static ngx_str_t scheme_https = ngx_string("https");
 static ngx_str_t scheme_http = ngx_string("http");
-static ngx_str_t status_ok = ngx_string("200");
+static unsigned char status_data_buf[NGX_INT_T_LEN];
+static ngx_str_t status_str = { 0, status_data_buf };
 
 static ngx_http_wasm_h2_header_t wasm_h2_req_header_static_table[] = {
     {ngx_string(":path"),   PROXY_WASM_REQUEST_HEADER_PATH, ngx_http_wasm_get_path},
@@ -650,9 +651,7 @@ static ngx_str_t *ngx_http_wasm_get_scheme(ngx_http_request_t *r)
 static ngx_str_t *
 ngx_http_wasm_get_status(ngx_http_request_t *r)
 {
-    ngx_str_t  *sc;
     ngx_uint_t  status;
-    u_char     *p;
 
     if (r->err_status) {
         status = r->err_status;
@@ -660,17 +659,9 @@ ngx_http_wasm_get_status(ngx_http_request_t *r)
         status = r->headers_out.status;
     }
 
-    sc = &status_ok;
+    status_str.len = ngx_sprintf(status_str.data, "%ui", status) - status_str.data;
 
-    p = ngx_http_wasm_get_string_buf(r->pool, sizeof(u_char));
-    if (p == NULL) {
-        return NULL;
-    }
-
-    sc->len = ngx_sprintf(p, "%ui", status) - p;
-    sc->data = p;
-
-    return sc;
+    return &status_str;
 }
 
 
