@@ -812,6 +812,8 @@ ngx_http_wasm_resp_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size
     ngx_uint_t           i;
     u_char              *content_length_hdr = NULL;
     u_char               content_length_hdr_len = 0;
+    u_char              *status_length_hdr = NULL;
+    u_char               status_length_hdr_len = 0;
     char                *lowcase_key;
     char                *val;
     ngx_list_part_t     *part;
@@ -885,6 +887,20 @@ ngx_http_wasm_resp_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size
         size += sizeof("transfer-encoding") + sizeof("chunked");
     }
 
+    if (r->headers_out.status) {
+        count++;
+        status_length_hdr = ngx_pcalloc(r->pool, NGX_INT_T_LEN);
+        if (status_length_hdr == NULL) {
+            ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
+            return PROXY_RESULT_INTERNAL_FAILURE;
+        }
+
+        status_length_hdr_len = ngx_snprintf(status_length_hdr, NGX_INT_T_LEN, "%ui", 
+                                             r->headers_out.status) - status_length_hdr;
+        
+        size += sizeof(":status") + status_length_hdr_len + 1;
+    }
+    
     size += 4 + count * 2 * 4;
     buf = ngx_http_wasm_get_buf_to_write(log, size, addr, size_addr);
     if (buf == NULL) {
@@ -953,6 +969,13 @@ ngx_http_wasm_resp_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size
         proxy_wasm_map_reserve_literal(&it, "transfer-encoding", "chunked");
     }
 
+    if (status_length_hdr != NULL) {
+        proxy_wasm_map_reserve(&it, &lowcase_key, sizeof(":status") -1, 
+                               &val, status_length_hdr_len);
+        ngx_memcpy(lowcase_key, ":status", sizeof(":status") - 1);
+        ngx_memcpy(val, status_length_hdr, status_length_hdr_len);
+    }
+    
     return PROXY_RESULT_OK;
 }
 

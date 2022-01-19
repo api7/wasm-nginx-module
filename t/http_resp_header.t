@@ -173,6 +173,7 @@ qr/get response header \S+ \S+/
 get response header content-type text/plain,
 get response header content-length 0,
 get response header connection close,
+get response header :status 200,
 
 
 
@@ -198,6 +199,7 @@ get response header x-foo bar,
 get response header content-type text/plain,
 get response header content-length 4,
 get response header connection close,
+get response header :status 200,
 
 
 
@@ -225,6 +227,7 @@ get response header x-wasm false,
 get response header content-type text/html,
 get response header content-length 4,
 get response header connection close,
+get response header :status 200,
 
 
 
@@ -253,6 +256,7 @@ qr/get response header \S+ \S+/
 get response header content-type text/plain,
 get response header content-length 0,
 get response header connection keep-alive,
+get response header :status 200,
 
 
 
