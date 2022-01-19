@@ -895,12 +895,12 @@ ngx_http_wasm_resp_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size
             return PROXY_RESULT_INTERNAL_FAILURE;
         }
 
-        status_length_hdr_len = ngx_snprintf(status_length_hdr, NGX_INT_T_LEN, "%ui", 
+        status_length_hdr_len = ngx_snprintf(status_length_hdr, NGX_INT_T_LEN, "%ui",
                                              r->headers_out.status) - status_length_hdr;
-        
+
         size += sizeof(":status") + status_length_hdr_len + 1;
     }
-    
+
     size += 4 + count * 2 * 4;
     buf = ngx_http_wasm_get_buf_to_write(log, size, addr, size_addr);
     if (buf == NULL) {
@@ -970,12 +970,12 @@ ngx_http_wasm_resp_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size
     }
 
     if (status_length_hdr != NULL) {
-        proxy_wasm_map_reserve(&it, &lowcase_key, sizeof(":status") -1, 
+        proxy_wasm_map_reserve(&it, &lowcase_key, sizeof(":status") -1,
                                &val, status_length_hdr_len);
         ngx_memcpy(lowcase_key, ":status", sizeof(":status") - 1);
         ngx_memcpy(val, status_length_hdr, status_length_hdr_len);
     }
-    
+
     return PROXY_RESULT_OK;
 }
 
