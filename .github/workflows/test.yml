@@ -16,6 +16,9 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v1
+
       - name: Set up Node.js
         uses: actions/setup-node@v1
         with:
@@ -51,7 +54,8 @@ jobs:
         run: |
           wget https://raw.githubusercontent.com/api7/apisix-build-tools/master/build-apisix-base.sh
           chmod +x build-apisix-base.sh
-          OR_PREFIX=$OPENRESTY_PREFIX cc_opt="-Werror" ./build-apisix-base.sh latest
+          OR_PREFIX=$OPENRESTY_PREFIX CC="clang -fsanitize=address -fcolor-diagnostics -Qunused-arguments" \
+              cc_opt="-Werror" ./build-apisix-base.sh latest
 
       - name: Script
         run: |
