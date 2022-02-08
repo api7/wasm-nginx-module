@@ -170,7 +170,7 @@ location /t {
         end
     }
 }
---- timeout: 5
+--- timeout: 10
 --- grep_error_log eval
 qr/called for contextID = \d+/
 --- grep_error_log_out eval
