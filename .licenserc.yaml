@@ -12,23 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-use t::WASM 'no_plan';
+header:
+  license:
+    spdx-id: Apache-2.0
+    copyright-owner: Shenzhen ZhiLiu Technology Co., Ltd.
 
-run_tests();
+  paths-ignore:
+    - '.gitignore'
+    - 'LICENSE'
+    - '.github/'
+    # Exclude test files
+    - 'go.mod'
+    - 'go.sum'
+    - 't/certs/'
+    - 't/testdata/assemblyscript/node_modules/'
+    - 't/testdata/assemblyscript/build/'
+    - 't/testdata/rust/Cargo.lock'
+    - '**/*.json'
+    # Exclude dev files
+    - '.ccls-cache/'
 
-__DATA__
-
-=== TEST 1: fault injection
---- config
-location /t {
-    content_by_lua_block {
-        local wasm = require("resty.proxy-wasm")
-        local plugin = assert(wasm.load("FaultInjection",
-            "t/testdata/assemblyscript/build/untouched.wasm"))
-        local ctx = assert(wasm.on_configure(plugin, 'body'))
-        assert(wasm.on_http_request_headers(ctx))
-    }
-}
---- error_code: 403
---- response_body chomp
-body
+  comment: on-failure
