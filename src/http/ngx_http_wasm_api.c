@@ -264,7 +264,7 @@ ngx_http_wasm_set_req_header(ngx_http_request_t *r,
 
         if (errmsg != NULL) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "faied to set request header %*s to %*s: %s",
+                          "failed to set request header %*s to %*s: %s",
                           key_len, key, val_len, val, errmsg);
         }
 
@@ -295,7 +295,7 @@ ngx_http_wasm_set_resp_header(ngx_http_request_t *r,
 
         if (errmsg != NULL) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                          "faied to set response header %*s to %*s: %s",
+                          "failed to set response header %*s to %*s: %s",
                           key_len, key, val_len, val, errmsg);
         }
 
@@ -738,7 +738,7 @@ ngx_http_wasm_req_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size_
 
     if (count == FFI_BAD_CONTEXT) {
         ngx_log_error(NGX_LOG_ERR, log, 0,
-                      "faied to get request headers: %s", err_bad_ctx);
+                      "failed to get request headers: %s", err_bad_ctx);
         return PROXY_RESULT_BAD_ARGUMENT;
     }
 

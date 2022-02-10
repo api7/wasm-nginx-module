@@ -7,9 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  lint:
-    runs-on: "ubuntu-18.04"
-
+  code-lint:
+    runs-on: "ubuntu-20.04"
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -31,3 +30,18 @@ jobs:
       - name: Script
         run: |
           make lint
+
+  misc-lint:
+    runs-on: "ubuntu-20.04"
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Spell check
+        run: |
+          pip install codespell==2.1.0
+          git grep --cached -l '' | xargs codespell --ignore-words=.github/workflows/ignore_words
+
+      - name: Merge conflict
+        run: |
+          grep "^<<<<<<< HEAD" $(git grep --cached -l '' | xargs) && exit 1 || true
