@@ -3,6 +3,7 @@
 wasmtime-*-c-api
 wasmtime-*-c-api.tar.xz
 wasmtime-c-api
+wasmedge/
 *.wasm
 *.wasm.map
 *.wat
