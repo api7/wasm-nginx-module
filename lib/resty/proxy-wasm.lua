@@ -47,7 +47,8 @@ void ngx_http_wasm_unload_plugin(void *plugin);
 void *ngx_http_wasm_on_configure(void *plugin, const char *conf, size_t size);
 void ngx_http_wasm_delete_plugin_ctx(void *hwp_ctx);
 
-ngx_int_t ngx_http_wasm_on_http(void *hwp_ctx, void *r, int type);
+ngx_int_t ngx_http_wasm_on_http(void *hwp_ctx, void *r, int type,
+                                const u_char *body, size_t size, int end_of_body);
 ngx_str_t *ngx_http_wasm_fetch_local_body(void *r);
 
 ngx_int_t ngx_http_wasm_call_max_headers_count(void *r);
@@ -65,7 +66,7 @@ local ngx_table_size = ffi.sizeof("proxy_wasm_table_elt_t")
 
 local _M = {}
 local HTTP_REQUEST_HEADERS = 1
---local HTTP_REQUEST_BODY = 2
+local HTTP_REQUEST_BODY = 2
 local HTTP_RESPONSE_HEADERS = 4
 --local HTTP_RESPONSE_BODY = 8
 
@@ -258,7 +259,7 @@ local function handle_http_callback(plugin_ctx, r, res)
 end
 
 
-function _M.on_http_request_headers(plugin_ctx)
+local function on_http_request(plugin_ctx, ty, body, end_of_body)
     if type(plugin_ctx) ~= "cdata" then
         return nil, "bad plugin ctx"
     end
@@ -268,9 +269,23 @@ function _M.on_http_request_headers(plugin_ctx)
         return nil, "bad request"
     end
 
-    local rc = C.ngx_http_wasm_on_http(plugin_ctx, r, HTTP_REQUEST_HEADERS)
+    local err
+    if ty == HTTP_REQUEST_HEADERS then
+        err = "failed to run proxy_on_http_request_headers"
+    else
+        err = "failed to run proxy_on_http_request_body"
+    end
+
+    local body_size
+    if not body then
+        body_size = 0
+    else
+        body_size = #body
+    end
+
+    local rc = C.ngx_http_wasm_on_http(plugin_ctx, r, ty, body, body_size, end_of_body)
     if rc < 0 then
-        return nil, "failed to run proxy_on_http_request_headers"
+        return nil, err
     end
 
     while true do
@@ -304,6 +319,16 @@ function _M.on_http_request_headers(plugin_ctx)
 end
 
 
+function _M.on_http_request_headers(plugin_ctx)
+    return on_http_request(plugin_ctx, HTTP_REQUEST_HEADERS, nil, 1)
+end
+
+
+function _M.on_http_request_body(plugin_ctx, body, end_of_body)
+    return on_http_request(plugin_ctx, HTTP_REQUEST_BODY, body, end_of_body and 1 or 0)
+end
+
+
 function _M.on_http_response_headers(plugin_ctx)
     if type(plugin_ctx) ~= "cdata" then
         return nil, "bad plugin ctx"
@@ -314,7 +339,7 @@ function _M.on_http_response_headers(plugin_ctx)
         return nil, "bad request"
     end
 
-    local rc = C.ngx_http_wasm_on_http(plugin_ctx, r, HTTP_RESPONSE_HEADERS)
+    local rc = C.ngx_http_wasm_on_http(plugin_ctx, r, HTTP_RESPONSE_HEADERS, nil, 0, 1)
     if rc < 0 then
         return nil, "failed to run proxy_on_http_response_headers"
     end

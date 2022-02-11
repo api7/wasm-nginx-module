@@ -495,9 +495,9 @@ proxy_get_buffer_bytes(int32_t type, int32_t start, int32_t size,
                        int32_t addr, int32_t size_addr)
 {
     ngx_log_t            *log;
-    const u_char         *data;
-    int32_t               len;
-    const ngx_str_t      *conf;
+    const u_char         *data = NULL;
+    int32_t               len = 0;
+    const ngx_str_t      *buffer;
 
     ngx_http_request_t      *r;
     ngx_http_wasm_ctx_t     *ctx;
@@ -506,9 +506,19 @@ proxy_get_buffer_bytes(int32_t type, int32_t start, int32_t size,
 
     switch (type) {
     case PROXY_BUFFER_TYPE_PLUGIN_CONFIGURATION:
-        conf = ngx_http_wasm_get_conf();
-        data = conf->data;
-        len = conf->len;
+        buffer = ngx_http_wasm_get_conf();
+        if (buffer != NULL) {
+            data = buffer->data;
+            len = buffer->len;
+        }
+        break;
+
+    case PROXY_BUFFER_TYPE_HTTP_REQUEST_BODY:
+        buffer = ngx_http_wasm_get_body();
+        if (buffer != NULL) {
+            data = buffer->data;
+            len = buffer->len;
+        }
         break;
 
     case PROXY_BUFFER_TYPE_HTTP_CALL_RESPONSE_BODY:

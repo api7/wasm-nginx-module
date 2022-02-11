@@ -99,6 +99,30 @@ end
 assert(wasm.on_http_request_headers(ctx))
 ```
 
+### on_http_request_body
+
+`syntax: ok, err = proxy_wasm.on_http_request_body(plugin_ctx, body, end_of_body)`
+
+Run the HTTP request body filter in the plugin of the given plugin ctx.
+
+```lua
+local plugin, err = proxy_wasm.load("plugin","t/testdata/plugin_lifecycle/main.go.wasm")
+if not plugin then
+    ngx.log(ngx.ERR, "failed to load wasm ", err)
+    return
+end
+local ctx, err = wasm.on_configure(plugin, '{"body":512}')
+if not ctx then
+    ngx.log(ngx.ERR, "failed to create plugin ctx ", err)
+    return
+end
+-- get_body is a utility method to get the whole request body
+local body = request.get_body()
+-- if the body is not the whole request body, for example, it comes from
+-- lua-resty-upload, remember to set end_of_body to false
+assert(wasm.on_http_request_body(ctx, body, true))
+```
+
 ### on_http_response_headers
 
 `syntax: ok, err = proxy_wasm.on_http_response_headers(plugin_ctx)`
