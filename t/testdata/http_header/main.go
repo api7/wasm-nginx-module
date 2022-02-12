@@ -58,7 +58,7 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		var p fastjson.Parser
 		conf, err = p.ParseBytes(data)
 		if err != nil {
-			proxywasm.LogErrorf("erorr decoding plugin configuration: %v", err)
+			proxywasm.LogErrorf("error decoding plugin configuration: %v", err)
 			return types.ActionContinue
 		}
 
@@ -164,7 +164,7 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 		var p fastjson.Parser
 		conf, err = p.ParseBytes(data)
 		if err != nil {
-			proxywasm.LogErrorf("erorr decoding plugin configuration: %v", err)
+			proxywasm.LogErrorf("error decoding plugin configuration: %v", err)
 			return types.ActionContinue
 		}
 
