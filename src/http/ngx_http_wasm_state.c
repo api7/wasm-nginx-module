@@ -23,6 +23,12 @@ static ngx_http_wasm_state_t    *cur_state = NULL;
 void
 ngx_http_wasm_set_state(ngx_http_wasm_state_t *state)
 {
+    if (state == NULL) {
+        /* clear state data */
+        cur_state->body.data = NULL;
+        cur_state->body.len = 0;
+    }
+
     cur_state = state;
 }
 
@@ -68,4 +74,15 @@ ngx_http_wasm_get_plugin_name(void)
     }
 
     return cur_state->plugin_name;
+}
+
+
+const ngx_str_t *
+ngx_http_wasm_get_body(void)
+{
+    if (cur_state == NULL) {
+        return NULL;
+    }
+
+    return &cur_state->body;
 }

@@ -46,6 +46,8 @@ static ngx_str_t proxy_on_done = ngx_string("proxy_on_done");
 static ngx_str_t proxy_on_delete = ngx_string("proxy_on_delete");
 static ngx_str_t proxy_on_request_headers =
     ngx_string("proxy_on_request_headers");
+static ngx_str_t proxy_on_request_body =
+    ngx_string("proxy_on_request_body");
 static ngx_str_t proxy_on_response_headers =
     ngx_string("proxy_on_response_headers");
 static ngx_str_t proxy_on_http_call_response =
@@ -647,7 +649,8 @@ ngx_http_wasm_handle_rc_before_proxy(ngx_http_wasm_main_conf_t *wmcf,
 
 ngx_int_t
 ngx_http_wasm_on_http(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r,
-                      ngx_http_wasm_phase_t type)
+                      ngx_http_wasm_phase_t type, const u_char *body, size_t size,
+                      int end_of_body)
 {
     ngx_int_t                        rc;
     ngx_log_t                       *log;
@@ -665,6 +668,12 @@ ngx_http_wasm_on_http(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r
 
     wmcf = ngx_http_get_module_main_conf(r, ngx_http_wasm_module);
     hwp_ctx->state->r = r;
+
+    if (body != NULL) {
+        hwp_ctx->state->body.data = (u_char *) body;
+        hwp_ctx->state->body.len = size;
+    }
+
     ngx_http_wasm_set_state(hwp_ctx->state);
 
     http_ctx = ngx_http_wasm_fetch_http_ctx(hwp_ctx, r);
@@ -677,19 +686,29 @@ ngx_http_wasm_on_http(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r
 
     if (type == HTTP_RESPONSE_HEADERS) {
         cb_name = &proxy_on_response_headers;
+    } else if (type == HTTP_REQUEST_BODY) {
+        cb_name = &proxy_on_request_body;
     } else {
         cb_name = &proxy_on_request_headers;
     }
 
-    if (hwp_ctx->hw_plugin->abi_version == PROXY_WASM_ABI_VER_010) {
-        rc = ngx_wasm_vm.call(hwp_ctx->hw_plugin->plugin,
-                              cb_name,
-                              true, NGX_WASM_PARAM_I32_I32, http_ctx->id, 0);
+    if (type == HTTP_REQUEST_HEADERS || type == HTTP_RESPONSE_HEADERS) {
+        if (hwp_ctx->hw_plugin->abi_version == PROXY_WASM_ABI_VER_010) {
+            rc = ngx_wasm_vm.call(hwp_ctx->hw_plugin->plugin,
+                                  cb_name,
+                                  true, NGX_WASM_PARAM_I32_I32, http_ctx->id, 0);
+        } else {
+            rc = ngx_wasm_vm.call(hwp_ctx->hw_plugin->plugin,
+                                  cb_name,
+                                  true, NGX_WASM_PARAM_I32_I32_I32, http_ctx->id,
+                                  0, 1);
+        }
+
     } else {
         rc = ngx_wasm_vm.call(hwp_ctx->hw_plugin->plugin,
                               cb_name,
                               true, NGX_WASM_PARAM_I32_I32_I32, http_ctx->id,
-                              0, 1);
+                              size, end_of_body);
     }
 
     ngx_http_wasm_set_state(NULL);

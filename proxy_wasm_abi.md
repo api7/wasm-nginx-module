@@ -115,10 +115,21 @@ might be retrieved using `proxy_get_buffer`.
 * returns:
   - `i32 (proxy_action_t) next_action`
 
-Called when HTTP request headers are received from the client. TODO: Headers can be retrieved using
-`proxy_get_map` and/or `proxy_get_map_value`.
+Called when HTTP request headers are received from the client.
 
 TODO: pass a correct `num_headers` but not 0.
+
+### `proxy_on_request_body`
+
+* params:
+  - `i32 (uint32_t) context_id`
+  - `i32 (size_t) body_size`
+  - `i32 (bool) end_of_stream`
+* returns:
+  - `i32 (proxy_action_t) next_action`
+
+Called for HTTP request body received from the client. Request body can be retrieved
+using `proxy_get_buffer_bytes`.
 
 ### `proxy_on_response_headers`
 
@@ -129,8 +140,7 @@ TODO: pass a correct `num_headers` but not 0.
 * returns:
   - `i32 (proxy_action_t) next_action`
 
-Called when HTTP response headers are received from the upstream. TODO: Headers can be retrieved using
-`proxy_get_map` and/or `proxy_get_map_value`.
+Called when HTTP response headers are received from the upstream.
 
 TODO: pass a correct `num_headers` but not 0.
 
