@@ -244,6 +244,12 @@ ngx_wasm_wasmtime_call(void *data, ngx_str_t *name, bool has_result, int param_t
 
     ngx_log_debug1(NGX_LOG_DEBUG_CORE, ngx_cycle->log, 0, "wasmtime call function %V", name);
 
+    if (plugin == NULL) {
+        plugin = cur_plugin;
+    } else {
+        cur_plugin = plugin;
+    }
+
     found = wasmtime_instance_export_get(plugin->context, &plugin->instance,
                                          (const char *) name->data, name->len, &func);
     if (!found) {
@@ -251,8 +257,6 @@ ngx_wasm_wasmtime_call(void *data, ngx_str_t *name, bool has_result, int param_t
                        "wasmtime function %V not defined", name);
         return NGX_OK;
     }
-
-    cur_plugin = plugin;
 
     va_start(args, param_type);
 
@@ -360,40 +364,6 @@ ngx_wasm_wasmtime_get_memory(ngx_log_t *log, int32_t addr, int32_t size)
 }
 
 
-int32_t
-ngx_wasm_wasmtime_malloc(ngx_log_t *log, int32_t size)
-{
-    wasmtime_extern_t           func;
-    wasm_trap_t                *trap = NULL;
-    wasmtime_error_t           *error;
-    wasmtime_val_t              params[1];
-    wasmtime_val_t              results[1];
-    bool                        found;
-
-    found = wasmtime_instance_export_get(cur_plugin->context, &cur_plugin->instance,
-                                         "proxy_on_memory_allocate", 24, &func);
-    if (!found) {
-        found = wasmtime_instance_export_get(cur_plugin->context, &cur_plugin->instance,
-                                             "malloc", 6, &func);
-        if (!found) {
-            ngx_log_error(NGX_LOG_ERR, log, 0, "can't find malloc in the WASM plugin");
-            return 0;
-        }
-    }
-
-    params[0].kind = WASMTIME_I32;
-    params[0].of.i32 = size;
-
-    error = wasmtime_func_call(cur_plugin->context, &func.of.func, params, 1, results, 1, &trap);
-    if (error != NULL || trap != NULL) {
-        ngx_wasm_wasmtime_report_error(log, "failed to malloc: ", error, trap);
-        return 0;
-    }
-
-    return results[0].of.i64;
-}
-
-
 ngx_wasm_vm_t ngx_wasm_vm = {
     &vm_name,
     ngx_wasm_wasmtime_init,
@@ -401,7 +371,6 @@ ngx_wasm_vm_t ngx_wasm_vm = {
     ngx_wasm_wasmtime_load,
     ngx_wasm_wasmtime_unload,
     ngx_wasm_wasmtime_get_memory,
-    ngx_wasm_wasmtime_malloc,
     ngx_wasm_wasmtime_call,
     ngx_wasm_wasmtime_has,
 };

@@ -23,6 +23,7 @@
 #include "ngx_http_wasm_call.h"
 #include "ngx_http_wasm_ctx.h"
 #include "proxy_wasm/proxy_wasm_map.h"
+#include "proxy_wasm/proxy_wasm_memory.h"
 
 
 typedef struct {
@@ -201,7 +202,7 @@ ngx_http_wasm_copy_to_wasm(ngx_log_t *log, const u_char *data, int32_t len,
         return PROXY_RESULT_OK;
     }
 
-    buf_addr = ngx_wasm_vm.malloc(log, len);
+    buf_addr = proxy_wasm_memory_alloc(log, len);
     if (buf_addr == 0) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
         return PROXY_RESULT_INTERNAL_FAILURE;
@@ -233,7 +234,7 @@ ngx_http_wasm_get_buf_to_write(ngx_log_t *log, int32_t len,
     int32_t        *p;
     u_char         *buf;
 
-    buf_addr = ngx_wasm_vm.malloc(log, len);
+    buf_addr = proxy_wasm_memory_alloc(log, len);
     if (buf_addr == 0) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "no memory");
         return NULL;
