@@ -44,11 +44,6 @@ typedef struct {
      * It returns NULL if addr + size is out of bound.
      */
     u_char          *(*get_memory)(ngx_log_t *log, int32_t addr, int32_t size);
-    /*
-     * malloc allocates memory in WASM, and then return the address of the allocated
-     * memory.
-     */
-    int32_t          (*malloc)(ngx_log_t *log, int32_t size);
 
     /*
      * call run a function exported from the plugin.
