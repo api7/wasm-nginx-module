@@ -21,6 +21,7 @@ This library is under construction. See https://github.com/api7/wasm-nginx-modul
 ## Description
 
 A Nginx module which tries to implement [proxy wasm ABI](https://github.com/proxy-wasm/spec) in Nginx.
+The [Wasm integration of Apache APISIX](https://github.com/apache/apisix/blob/master/docs/en/latest/wasm.md) is powered by this module.
 
 ## Install dependencies
 
