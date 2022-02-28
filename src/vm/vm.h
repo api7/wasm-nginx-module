@@ -57,10 +57,11 @@ typedef struct {
 } ngx_wasm_vm_t;
 
 
-extern ngx_wasm_vm_t ngx_wasm_vm;
+extern ngx_wasm_vm_t *ngx_wasm_vm;
+extern ngx_wasm_vm_t ngx_wasm_wasmtime_vm;
 
 
-ngx_int_t ngx_wasm_vm_init();
+ngx_int_t ngx_wasm_vm_init(ngx_str_t *name);
 void ngx_wasm_vm_cleanup(void *data);
 
 

@@ -26,9 +26,9 @@ int32_t proxy_wasm_memory_alloc(ngx_log_t *log, int32_t size)
 {
     int32_t         addr;
 
-    addr = ngx_wasm_vm.call(NULL, &proxy_on_memory_allocate, true, NGX_WASM_PARAM_I32, size);
+    addr = ngx_wasm_vm->call(NULL, &proxy_on_memory_allocate, true, NGX_WASM_PARAM_I32, size);
     if (addr == 0) {
-        addr = ngx_wasm_vm.call(NULL, &exported_malloc, true, NGX_WASM_PARAM_I32, size);
+        addr = ngx_wasm_vm->call(NULL, &exported_malloc, true, NGX_WASM_PARAM_I32, size);
     }
 
     if (addr == 0) {

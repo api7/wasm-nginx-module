@@ -17,7 +17,7 @@
 #include <wasi.h>
 #include <wasm.h>
 #include <wasmtime.h>
-#include <http/ngx_http_wasm_api.h>
+#include <http/ngx_http_wasm_api_wasmtime.h>
 #include "vm.h"
 
 
@@ -47,6 +47,35 @@ static wasmtime_val_t   param_int32_int32_int32_int32_int32[5] = {
     { .kind = WASMTIME_I32 }, { .kind = WASMTIME_I32 },
 };
 static ngx_wasm_wasmtime_plugin_t *cur_plugin;
+
+
+static wasm_functype_t *
+ngx_http_wasmtime_host_api_func(const ngx_wasm_wasmtime_host_api_t *api)
+{
+    int                i;
+    wasm_valtype_vec_t param_vec, result_vec;
+    wasm_valtype_t    *param[MAX_WASM_API_ARG];
+    wasm_valtype_t    *result[1];
+    wasm_functype_t   *f;
+
+    for (i = 0; i < api->param_num; i++) {
+        param[i] = wasm_valtype_new(api->param_type[i]);
+    }
+
+    result[0] = wasm_valtype_new(WASM_I32);
+    wasm_valtype_vec_new(&param_vec, api->param_num, param);
+    wasm_valtype_vec_new(&result_vec, 1, result);
+
+    f = wasm_functype_new(&param_vec, &result_vec);
+
+    for (i = 0; i < api->param_num; i++) {
+        wasm_valtype_delete(param[i]);
+    }
+
+    wasm_valtype_delete(result[0]);
+
+    return f;
+}
 
 
 static void
@@ -150,13 +179,17 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
     }
 
     for (i = 0; host_apis[i].name.len; i++) {
-        ngx_wasm_host_api_t *api = &host_apis[i];
+        ngx_wasm_wasmtime_host_api_t *api = &host_apis[i];
         wasm_functype_t     *f;
 
         ngx_log_debug1(NGX_LOG_DEBUG_CORE, ngx_cycle->log, 0,
                        "define wasm host API %V", &api->name);
 
-        f = ngx_http_wasm_host_api_func(api);
+        f = ngx_http_wasmtime_host_api_func(api);
+        if (f == NULL) {
+            goto free_linker;
+        }
+
         error = wasmtime_linker_define_func(linker, "env", 3,
                                             (const char *) api->name.data, api->name.len,
                                             f,
@@ -306,8 +339,11 @@ ngx_wasm_wasmtime_call(void *data, ngx_str_t *name, bool has_result, int param_t
 
     default:
         ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "unknown param type: %d", param_type);
+        va_end(args);
         return NGX_ERROR;
     }
+
+    va_end(args);
 
     error = wasmtime_func_call(plugin->context, &func.of.func, params, param_num, results,
                                has_result ? 1 : 0, &trap);
@@ -364,7 +400,7 @@ ngx_wasm_wasmtime_get_memory(ngx_log_t *log, int32_t addr, int32_t size)
 }
 
 
-ngx_wasm_vm_t ngx_wasm_vm = {
+ngx_wasm_vm_t ngx_wasm_wasmtime_vm = {
     &vm_name,
     ngx_wasm_wasmtime_init,
     ngx_wasm_wasmtime_cleanup,

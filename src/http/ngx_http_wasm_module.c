@@ -148,12 +148,6 @@ ngx_http_wasm_vm(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     value = cf->args->elts;
-
-    if (ngx_strcmp(value[1].data, "wasmtime") != 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unsupported wasm vm %V", &value[1]);
-        return NGX_CONF_ERROR;
-    }
-
     wmcf->vm.len = value[1].len;
     wmcf->vm.data = value[1].data;
 
@@ -189,12 +183,12 @@ ngx_http_wasm_init(ngx_conf_t *cf)
 
     cln->handler = ngx_wasm_vm_cleanup;
 
-    rc = ngx_wasm_vm_init();
+    rc = ngx_wasm_vm_init(&wmcf->vm);
     if (rc != NGX_OK) {
         return rc;
     }
 
-    cln->data = &ngx_wasm_vm;
+    cln->data = ngx_wasm_vm;
 
     /* don't reinit during reconfiguring */
     ngx_http_wasm_vm_inited = true;
@@ -217,13 +211,13 @@ ngx_http_wasm_load_plugin(const char *name, size_t name_len,
         return NULL;
     }
 
-    plugin = ngx_wasm_vm.load(bytecode, size);
+    plugin = ngx_wasm_vm->load(bytecode, size);
 
     if (plugin == NULL) {
         return NULL;
     }
 
-    rc = ngx_wasm_vm.call(plugin, &plugin_start, false,
+    rc = ngx_wasm_vm->call(plugin, &plugin_start, false,
                           NGX_WASM_PARAM_VOID);
     if (rc != NGX_OK) {
         goto free_plugin;
@@ -241,7 +235,7 @@ ngx_http_wasm_load_plugin(const char *name, size_t name_len,
     /* assumed using latest ABI by default */
     hw_plugin->abi_version = PROXY_WASM_ABI_VER_MAX;
     for (i = 0; abi_versions[i].len != 0; i++) {
-        found = ngx_wasm_vm.has(plugin, &abi_versions[i]);
+        found = ngx_wasm_vm->has(plugin, &abi_versions[i]);
         if (found) {
             hw_plugin->abi_version = i;
         }
@@ -259,7 +253,7 @@ ngx_http_wasm_load_plugin(const char *name, size_t name_len,
     return hw_plugin;
 
 free_plugin:
-    ngx_wasm_vm.unload(plugin);
+    ngx_wasm_vm->unload(plugin);
     return NULL;
 }
 
@@ -274,7 +268,7 @@ ngx_http_wasm_free_plugin(ngx_http_wasm_plugin_t *hw_plugin)
         return;
     }
 
-    ngx_wasm_vm.unload(plugin);
+    ngx_wasm_vm->unload(plugin);
 
     while (!ngx_queue_empty(&hw_plugin->free)) {
         ngx_queue_t                 *q;
@@ -317,13 +311,13 @@ ngx_http_wasm_free_plugin_ctx(ngx_http_wasm_plugin_ctx_t *hwp_ctx)
     ngx_queue_remove(&hwp_ctx->queue);
     ngx_queue_insert_head(&hw_plugin->free, &hwp_ctx->queue);
 
-    rc = ngx_wasm_vm.call(plugin, &proxy_on_done, true, NGX_WASM_PARAM_I32, ctx_id);
+    rc = ngx_wasm_vm->call(plugin, &proxy_on_done, true, NGX_WASM_PARAM_I32, ctx_id);
     if (rc <= 0) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "failed to mark context %d as done, rc: %d",
                       ctx_id, rc);
     }
 
-    rc = ngx_wasm_vm.call(plugin, &proxy_on_delete, false, NGX_WASM_PARAM_I32, ctx_id);
+    rc = ngx_wasm_vm->call(plugin, &proxy_on_delete, false, NGX_WASM_PARAM_I32, ctx_id);
     if (rc != NGX_OK) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "failed to delete context %d, rc: %d",
                       ctx_id, rc);
@@ -392,7 +386,7 @@ ngx_http_wasm_on_configure(ngx_http_wasm_plugin_t *hw_plugin, const char *conf, 
 
     ngx_http_wasm_set_state(hw_plugin->state);
 
-    rc = ngx_wasm_vm.call(plugin, &proxy_on_context_create, false,
+    rc = ngx_wasm_vm->call(plugin, &proxy_on_context_create, false,
                           NGX_WASM_PARAM_I32_I32, ctx_id, 0);
     if (rc != NGX_OK) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "failed to create context %d, rc: %d",
@@ -425,8 +419,8 @@ ngx_http_wasm_on_configure(ngx_http_wasm_plugin_t *hw_plugin, const char *conf, 
 
     ngx_http_wasm_set_state(hwp_ctx->state);
 
-    rc = ngx_wasm_vm.call(plugin, &proxy_on_configure, true,
-                          NGX_WASM_PARAM_I32_I32, ctx_id, size);
+    rc = ngx_wasm_vm->call(plugin, &proxy_on_configure, true,
+                           NGX_WASM_PARAM_I32_I32, ctx_id, size);
 
     ngx_http_wasm_set_state(NULL);
 
@@ -479,7 +473,7 @@ ngx_http_wasm_create_http_ctx(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_requ
         http_ctx->hwp_ctx = hwp_ctx;
     }
 
-    rc = ngx_wasm_vm.call(plugin, &proxy_on_context_create, false,
+    rc = ngx_wasm_vm->call(plugin, &proxy_on_context_create, false,
                           NGX_WASM_PARAM_I32_I32, ctx_id, hwp_ctx->id);
     if (rc != NGX_OK) {
         ngx_log_error(NGX_LOG_ERR, log, 0, "failed to create context %d, rc: %d",
@@ -525,13 +519,13 @@ ngx_http_wasm_cleanup(void *data)
         ngx_queue_remove(&http_ctx->queue);
         ngx_queue_insert_head(&hwp_ctx->free, &http_ctx->queue);
 
-        rc = ngx_wasm_vm.call(plugin, &proxy_on_done, true, NGX_WASM_PARAM_I32, ctx_id);
+        rc = ngx_wasm_vm->call(plugin, &proxy_on_done, true, NGX_WASM_PARAM_I32, ctx_id);
         if (rc <= 0) {
             ngx_log_error(NGX_LOG_ERR, log, 0, "failed to mark context %d as done, rc: %d",
                           ctx_id, rc);
         }
 
-        rc = ngx_wasm_vm.call(plugin, &proxy_on_delete, false, NGX_WASM_PARAM_I32, ctx_id);
+        rc = ngx_wasm_vm->call(plugin, &proxy_on_delete, false, NGX_WASM_PARAM_I32, ctx_id);
         if (rc != NGX_OK) {
             ngx_log_error(NGX_LOG_ERR, log, 0, "failed to delete context %d, rc: %d",
                           ctx_id, rc);
@@ -694,18 +688,18 @@ ngx_http_wasm_on_http(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r
 
     if (type == HTTP_REQUEST_HEADERS || type == HTTP_RESPONSE_HEADERS) {
         if (hwp_ctx->hw_plugin->abi_version == PROXY_WASM_ABI_VER_010) {
-            rc = ngx_wasm_vm.call(hwp_ctx->hw_plugin->plugin,
-                                  cb_name,
-                                  true, NGX_WASM_PARAM_I32_I32, http_ctx->id, 0);
+            rc = ngx_wasm_vm->call(hwp_ctx->hw_plugin->plugin,
+                                   cb_name,
+                                   true, NGX_WASM_PARAM_I32_I32, http_ctx->id, 0);
         } else {
-            rc = ngx_wasm_vm.call(hwp_ctx->hw_plugin->plugin,
-                                  cb_name,
-                                  true, NGX_WASM_PARAM_I32_I32_I32, http_ctx->id,
-                                  0, 1);
+            rc = ngx_wasm_vm->call(hwp_ctx->hw_plugin->plugin,
+                                   cb_name,
+                                   true, NGX_WASM_PARAM_I32_I32_I32, http_ctx->id,
+                                   0, 1);
         }
 
     } else {
-        rc = ngx_wasm_vm.call(hwp_ctx->hw_plugin->plugin,
+        rc = ngx_wasm_vm->call(hwp_ctx->hw_plugin->plugin,
                               cb_name,
                               true, NGX_WASM_PARAM_I32_I32_I32, http_ctx->id,
                               size, end_of_body);
@@ -769,7 +763,7 @@ ngx_http_wasm_on_http_call_resp(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_re
                   "run http callback callout id: %d, plugin ctx id: %d",
                   ctx->callout_id, hwp_ctx->id);
 
-    rc = ngx_wasm_vm.call(hwp_ctx->hw_plugin->plugin,
+    rc = ngx_wasm_vm->call(hwp_ctx->hw_plugin->plugin,
                           &proxy_on_http_call_response,
                           false, NGX_WASM_PARAM_I32_I32_I32_I32_I32,
                           hwp_ctx->id, ctx->callout_id,

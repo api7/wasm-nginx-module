@@ -26,6 +26,7 @@ worker_connections(1024);
 
 
 $ENV{TEST_NGINX_HTML_DIR} ||= html_dir();
+$ENV{WASM_VM} ||= "wasmtime";
 
 
 add_block_preprocessor(sub {
@@ -46,11 +47,12 @@ add_block_preprocessor(sub {
     my $pat = $block->no_shutdown_error_log // '';
     $block->set_value("no_shutdown_error_log", "LeakSanitizer: detected memory leaks\n" . $pat);
 
+    my $wasm_vm = $ENV{WASM_VM};
     my $http_config = $block->http_config // '';
     $http_config .= <<_EOC_;
     lua_package_path "lib/?.lua;;";
     lua_ssl_trusted_certificate ../../certs/test.crt;
-    wasm_vm wasmtime;
+    wasm_vm $wasm_vm;
 
     server {
         listen 1980;
