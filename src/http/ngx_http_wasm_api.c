@@ -515,6 +515,7 @@ proxy_get_buffer_bytes(int32_t type, int32_t start, int32_t size,
         break;
 
     case PROXY_BUFFER_TYPE_HTTP_REQUEST_BODY:
+    case PROXY_BUFFER_TYPE_HTTP_RESPONSE_BODY:
         buffer = ngx_http_wasm_get_body();
         if (buffer != NULL) {
             data = buffer->data;

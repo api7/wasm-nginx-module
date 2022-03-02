@@ -50,6 +50,8 @@ static ngx_str_t proxy_on_request_body =
     ngx_string("proxy_on_request_body");
 static ngx_str_t proxy_on_response_headers =
     ngx_string("proxy_on_response_headers");
+static ngx_str_t proxy_on_response_body =
+    ngx_string("proxy_on_response_body");
 static ngx_str_t proxy_on_http_call_response =
     ngx_string("proxy_on_http_call_response");
 
@@ -684,12 +686,14 @@ ngx_http_wasm_on_http(ngx_http_wasm_plugin_ctx_t *hwp_ctx, ngx_http_request_t *r
 
     ctx = ngx_http_wasm_get_module_ctx(r);
 
-    if (type == HTTP_RESPONSE_HEADERS) {
-        cb_name = &proxy_on_response_headers;
+    if (type == HTTP_REQUEST_HEADERS) {
+        cb_name = &proxy_on_request_headers;
     } else if (type == HTTP_REQUEST_BODY) {
         cb_name = &proxy_on_request_body;
+    } else if (type == HTTP_RESPONSE_HEADERS) {
+        cb_name = &proxy_on_response_headers;
     } else {
-        cb_name = &proxy_on_request_headers;
+        cb_name = &proxy_on_response_body;
     }
 
     if (type == HTTP_REQUEST_HEADERS || type == HTTP_RESPONSE_HEADERS) {

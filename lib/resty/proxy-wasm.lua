@@ -68,7 +68,7 @@ local _M = {}
 local HTTP_REQUEST_HEADERS = 1
 local HTTP_REQUEST_BODY = 2
 local HTTP_RESPONSE_HEADERS = 4
---local HTTP_RESPONSE_BODY = 8
+local HTTP_RESPONSE_BODY = 8
 
 local RC_NEED_HTTP_CALL = 1
 
@@ -342,6 +342,28 @@ function _M.on_http_response_headers(plugin_ctx)
     local rc = C.ngx_http_wasm_on_http(plugin_ctx, r, HTTP_RESPONSE_HEADERS, nil, 0, 1)
     if rc < 0 then
         return nil, "failed to run proxy_on_http_response_headers"
+    end
+
+    return true
+end
+
+
+function _M.on_http_response_body(plugin_ctx)
+    if type(plugin_ctx) ~= "cdata" then
+        return nil, "bad plugin ctx"
+    end
+
+    local r = get_request()
+    if not r then
+        return nil, "bad request"
+    end
+
+    -- TODO: rewrite this by exporting FFI interfaces in OpenResty to save a copy
+    local body = ngx.arg[1]
+    local eof = ngx.arg[2]
+    local rc = C.ngx_http_wasm_on_http(plugin_ctx, r, HTTP_RESPONSE_BODY, body, #body, eof)
+    if rc < 0 then
+        return nil, "failed to run proxy_on_http_response_body"
     end
 
     return true
