@@ -18,6 +18,7 @@
 #include <dlfcn.h>
 #include "vm/vm.h"
 #include "ngx_http_wasm_api.h"
+#include "ngx_http_wasm_api_def.h"
 #include "ngx_http_wasm_module.h"
 #include "ngx_http_wasm_state.h"
 #include "ngx_http_wasm_call.h"
@@ -39,7 +40,7 @@ typedef struct {
 #define FFI_BAD_CONTEXT -101
 
 #define must_get_memory(key, log, key_data, key_len) \
-    key = (char *) ngx_wasm_vm.get_memory((log), (key_data), (key_len)); \
+    key = (char *) ngx_wasm_vm->get_memory((log), (key_data), (key_len)); \
     if (key == NULL) { \
         return PROXY_RESULT_INVALID_MEMORY_ACCESS; \
     }
@@ -119,35 +120,6 @@ static ngx_http_wasm_h2_header_t wasm_h2_resp_header_static_table[] = {
 };
 
 
-wasm_functype_t *
-ngx_http_wasm_host_api_func(const ngx_wasm_host_api_t *api)
-{
-    int                i;
-    wasm_valtype_vec_t param_vec, result_vec;
-    wasm_valtype_t    *param[MAX_WASM_API_ARG];
-    wasm_valtype_t    *result[1];
-    wasm_functype_t   *f;
-
-    for (i = 0; i < api->param_num; i++) {
-        param[i] = wasm_valtype_new(api->param_type[i]);
-    }
-
-    result[0] = wasm_valtype_new(WASM_I32);
-    wasm_valtype_vec_new(&param_vec, api->param_num, param);
-    wasm_valtype_vec_new(&result_vec, 1, result);
-
-    f = wasm_functype_new(&param_vec, &result_vec);
-
-    for (i = 0; i < api->param_num; i++) {
-        wasm_valtype_delete(param[i]);
-    }
-
-    wasm_valtype_delete(result[0]);
-
-    return f;
-}
-
-
 ngx_int_t
 ngx_http_wasm_resolve_symbol(void)
 {
@@ -191,7 +163,7 @@ ngx_http_wasm_copy_to_wasm(ngx_log_t *log, const u_char *data, int32_t len,
     int32_t        *p;
     u_char         *buf;
 
-    p_size = (int32_t *) ngx_wasm_vm.get_memory(log, size_addr, sizeof(int32_t));
+    p_size = (int32_t *) ngx_wasm_vm->get_memory(log, size_addr, sizeof(int32_t));
     if (p_size == NULL) {
         return PROXY_RESULT_INVALID_MEMORY_ACCESS;
     }
@@ -208,14 +180,14 @@ ngx_http_wasm_copy_to_wasm(ngx_log_t *log, const u_char *data, int32_t len,
         return PROXY_RESULT_INTERNAL_FAILURE;
     }
 
-    buf = (u_char *) ngx_wasm_vm.get_memory(log, buf_addr, len);
+    buf = (u_char *) ngx_wasm_vm->get_memory(log, buf_addr, len);
     if (buf == NULL) {
         return PROXY_RESULT_INVALID_MEMORY_ACCESS;
     }
 
     ngx_memcpy(buf, data, len);
 
-    p = (int32_t *) ngx_wasm_vm.get_memory(log, addr, sizeof(int32_t));
+    p = (int32_t *) ngx_wasm_vm->get_memory(log, addr, sizeof(int32_t));
     if (p == NULL) {
         return PROXY_RESULT_INVALID_MEMORY_ACCESS;
     }
@@ -240,19 +212,19 @@ ngx_http_wasm_get_buf_to_write(ngx_log_t *log, int32_t len,
         return NULL;
     }
 
-    buf = (u_char *) ngx_wasm_vm.get_memory(log, buf_addr, len);
+    buf = (u_char *) ngx_wasm_vm->get_memory(log, buf_addr, len);
     if (buf == NULL) {
         return NULL;
     }
 
-    p = (int32_t *) ngx_wasm_vm.get_memory(log, addr, sizeof(int32_t));
+    p = (int32_t *) ngx_wasm_vm->get_memory(log, addr, sizeof(int32_t));
     if (p == NULL) {
         return NULL;
     }
 
     *p = buf_addr;
 
-    p_size = (int32_t *) ngx_wasm_vm.get_memory(log, size_addr, sizeof(int32_t));
+    p_size = (int32_t *) ngx_wasm_vm->get_memory(log, size_addr, sizeof(int32_t));
     if (p_size == NULL) {
         return NULL;
     }
@@ -356,7 +328,7 @@ proxy_get_property(int32_t path_data, int32_t path_size,
 
     log = ngx_http_wasm_get_log();
 
-    p = ngx_wasm_vm.get_memory(log, path_data, path_size);
+    p = ngx_wasm_vm->get_memory(log, path_data, path_size);
     if (p == NULL) {
         return PROXY_RESULT_INVALID_MEMORY_ACCESS;
     }
@@ -409,12 +381,12 @@ proxy_set_property(int32_t path_data, int32_t path_size,
     must_get_req(r);
 
     /* fetch property key and value */
-    key = ngx_wasm_vm.get_memory(log, path_data, path_size);
+    key = ngx_wasm_vm->get_memory(log, path_data, path_size);
     if (key == NULL) {
         return PROXY_RESULT_INVALID_MEMORY_ACCESS;
     }
 
-    value = ngx_wasm_vm.get_memory(log, data, size);
+    value = ngx_wasm_vm->get_memory(log, data, size);
     if (key == NULL) {
         return PROXY_RESULT_INVALID_MEMORY_ACCESS;
     }
@@ -454,7 +426,7 @@ proxy_log(int32_t log_level, int32_t addr, int32_t size)
 
     log = ngx_http_wasm_get_log();
 
-    p = ngx_wasm_vm.get_memory(log, addr, size);
+    p = ngx_wasm_vm->get_memory(log, addr, size);
     if (p == NULL) {
         return PROXY_RESULT_INVALID_MEMORY_ACCESS;
     }
@@ -564,11 +536,11 @@ proxy_set_buffer_bytes(int32_t type, int32_t start, int32_t length,
 
 
 int32_t
-proxy_send_http_response(int32_t res_code,
-                         int32_t res_code_details_data, int32_t res_code_details_size,
-                         int32_t body, int32_t body_size,
-                         int32_t headers, int32_t headers_size,
-                         int32_t grpc_status)
+proxy_send_local_response(int32_t res_code,
+                          int32_t res_code_details_data, int32_t res_code_details_size,
+                          int32_t body, int32_t body_size,
+                          int32_t headers, int32_t headers_size,
+                          int32_t grpc_status)
 {
     ngx_http_wasm_main_conf_t  *wmcf;
     ngx_http_request_t         *r;
@@ -588,7 +560,7 @@ proxy_send_http_response(int32_t res_code,
         ngx_int_t           rc;
         proxy_wasm_map_iter it;
 
-        p = ngx_wasm_vm.get_memory(log, headers, headers_size);
+        p = ngx_wasm_vm->get_memory(log, headers, headers_size);
         if (p == NULL) {
             return PROXY_RESULT_INVALID_MEMORY_ACCESS;
         }
@@ -603,7 +575,7 @@ proxy_send_http_response(int32_t res_code,
     }
 
     if (body_size > 0) {
-        p = ngx_wasm_vm.get_memory(log, body, body_size);
+        p = ngx_wasm_vm->get_memory(log, body, body_size);
         if (p == NULL) {
             return PROXY_RESULT_INVALID_MEMORY_ACCESS;
         }
@@ -617,6 +589,21 @@ proxy_send_http_response(int32_t res_code,
     }
 
     return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_send_http_response(int32_t res_code,
+                         int32_t res_code_details_data, int32_t res_code_details_size,
+                         int32_t body, int32_t body_size,
+                         int32_t headers, int32_t headers_size,
+                         int32_t grpc_status)
+{
+    return proxy_send_local_response(res_code,
+                                     res_code_details_data, res_code_details_size,
+                                     body, body_size,
+                                     headers, headers_size,
+                                     grpc_status);
 }
 
 
@@ -1486,7 +1473,7 @@ proxy_http_call(int32_t up_data, int32_t up_size,
         return PROXY_RESULT_INTERNAL_FAILURE;
     }
 
-    p_callout = (uint32_t *) ngx_wasm_vm.get_memory(log, callout_addr, sizeof(callout_id));
+    p_callout = (uint32_t *) ngx_wasm_vm->get_memory(log, callout_addr, sizeof(callout_id));
     if (p_callout == NULL) {
         return PROXY_RESULT_INVALID_MEMORY_ACCESS;
     }

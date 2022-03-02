@@ -17,10 +17,22 @@
 #include "vm.h"
 
 
+ngx_wasm_vm_t *ngx_wasm_vm = NULL;
+
+
 ngx_int_t
-ngx_wasm_vm_init()
+ngx_wasm_vm_init(ngx_str_t *name)
 {
-    return ngx_wasm_vm.init();
+    if (ngx_strcmp(name->data, "wasmtime") == 0) {
+        ngx_wasm_vm = &ngx_wasm_wasmtime_vm;
+    }
+
+    if (ngx_wasm_vm == NULL) {
+        ngx_log_error(NGX_LOG_EMERG, ngx_cycle->log, 0, "unsupported wasm vm %V", name);
+        return NGX_ERROR;
+    }
+
+    return ngx_wasm_vm->init();
 }
 
 

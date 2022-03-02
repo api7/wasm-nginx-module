@@ -66,4 +66,4 @@ jobs:
           pushd ./t/testdata/rust && cargo build --target=wasm32-wasi && popd
 
           export PATH=$OPENRESTY_PREFIX/nginx/sbin:$PATH
-          prove -I. -Itest-nginx/lib -r t/
+          WASM_VM=wasmtime prove -I. -Itest-nginx/lib -r t/

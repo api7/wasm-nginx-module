@@ -29,9 +29,9 @@ The [Wasm integration of Apache APISIX](https://github.com/apache/apisix/blob/ma
 Remember to add the `wasmtime-c-api/lib` to the library search path when you build Nginx, for instance,
 
 ```
-export wasm_prefix=/path/to/wasm-nginx-module/wasmtime-c-api
+export wasmtime_prefix=/path/to/wasm-nginx-module/wasmtime-c-api
 ./configure ... \
-    --with-ld-opt="-Wl,-rpath,${wasm_prefix}/lib" \
+    --with-ld-opt="-Wl,-rpath,${wasmtime_prefix}/lib" \
 ```
 
 ## Directives
@@ -44,8 +44,8 @@ export wasm_prefix=/path/to/wasm-nginx-module/wasmtime-c-api
 
 **context:** *http*
 
-Select the WASM VM. Currently, only wasmtime is supported. If the directive is
-not set, the WASM VM won't be enabled.
+Select the WASM VM. Currently, only wasmtime is supported.
+If the directive is not set, the WASM VM won't be enabled.
 
 ## Methods
 
