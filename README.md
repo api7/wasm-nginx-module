@@ -144,6 +144,28 @@ end
 assert(wasm.on_http_response_headers(ctx))
 ```
 
+### on_http_response_body
+
+`syntax: ok, err = proxy_wasm.on_http_response_body(plugin_ctx)`
+
+Run the HTTP response body filter in the plugin of the given plugin ctx.
+This method need to be called in `body_filter_by_lua` phase and may be run
+multiple times.
+
+```lua
+local plugin, err = proxy_wasm.load("plugin","t/testdata/http_lifecycle/main.go.wasm")
+if not plugin then
+    ngx.log(ngx.ERR, "failed to load wasm ", err)
+    return
+end
+local ctx, err = wasm.on_configure(plugin, '{"body":512}')
+if not ctx then
+    ngx.log(ngx.ERR, "failed to create plugin ctx ", err)
+    return
+end
+assert(wasm.on_http_response_body(ctx))
+```
+
 ## proxy-wasm ABI
 
 Implemented proxy-wasm ABI can be found in [proxy_wasm_abi](./proxy_wasm_abi.md).

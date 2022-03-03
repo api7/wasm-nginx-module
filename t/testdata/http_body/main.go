@@ -93,3 +93,41 @@ func (ctx *httpContext) OnHttpRequestBody(bodySize int, endOfStream bool) types.
 
 	return types.ActionContinue
 }
+
+func (ctx *httpContext) OnHttpResponseBody(bodySize int, endOfStream bool) types.Action {
+	data, err := proxywasm.GetPluginConfiguration()
+	if err != nil {
+		proxywasm.LogErrorf("error reading plugin configuration: %v", err)
+		return types.ActionContinue
+	}
+
+	proxywasm.LogWarnf("body size %d, end of stream %v", bodySize, endOfStream)
+
+	var action string
+	var conf *fastjson.Value
+	var p fastjson.Parser
+	conf, err = p.ParseBytes(data)
+	if err != nil {
+		proxywasm.LogErrorf("error decoding plugin configuration: %v", err)
+		return types.ActionContinue
+	}
+
+	action = string(conf.GetStringBytes("action"))
+
+	switch action {
+	case "offset":
+		if !endOfStream {
+			return types.ActionContinue
+		}
+		start := conf.GetInt("start")
+		size := conf.GetInt("size")
+		body, err := proxywasm.GetHttpRequestBody(start, size)
+		if err != nil {
+			proxywasm.LogErrorf("get body err: %v", err)
+			return types.ActionContinue
+		}
+		proxywasm.LogWarnf("get body [%s]", string(body))
+	}
+
+	return types.ActionContinue
+}
