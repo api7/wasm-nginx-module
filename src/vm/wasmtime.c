@@ -140,7 +140,8 @@ ngx_wasm_wasmtime_load(const char *bytecode, size_t size)
     wasmtime_extern_t             item;
 
     error = wasmtime_module_new(vm_engine, (const uint8_t*) bytecode, size, &module);
-    if (module == NULL) {
+    if (error != NULL) {
+        ngx_wasm_wasmtime_report_error(ngx_cycle->log, "failed to new module: ", error, NULL);
         return NULL;
     }
 

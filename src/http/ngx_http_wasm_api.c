@@ -632,6 +632,10 @@ proxy_get_configuration(int32_t addr, int32_t size_addr)
 
     log = ngx_http_wasm_get_log();
     conf = ngx_http_wasm_get_conf();
+    if (conf == NULL) {
+        return PROXY_RESULT_NOT_FOUND;
+    }
+
     data = conf->data;
     len = conf->len;
 
@@ -1422,7 +1426,7 @@ proxy_http_call(int32_t up_data, int32_t up_size,
     ngx_log_t          *log;
     ngx_url_t           url;
 
-    r = ngx_http_wasm_get_req();
+    must_get_req(r);
     log = r->connection->log;
 
     if (!ngx_http_wasm_is_yieldable(r)) {
