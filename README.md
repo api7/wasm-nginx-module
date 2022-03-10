@@ -44,8 +44,8 @@ export wasmtime_prefix=/path/to/wasm-nginx-module/wasmtime-c-api
 
 **context:** *http*
 
-Select the WASM VM. Currently, only wasmtime is supported.
-If the directive is not set, the WASM VM won't be enabled.
+Select the Wasm VM. Currently, only wasmtime is supported.
+If the directive is not set, the Wasm VM won't be enabled.
 
 ## Methods
 
@@ -55,7 +55,7 @@ If the directive is not set, the WASM VM won't be enabled.
 
 `syntax: plugin, err = proxy_wasm.load(name, path)`
 
-Load a `.wasm` file from the filesystem and return a WASM plugin.
+Load a `.wasm` file from the filesystem and return a Wasm plugin.
 
 ```lua
 local plugin, err = proxy_wasm.load("plugin","t/testdata/plugin_lifecycle/main.go.wasm")
