@@ -67,13 +67,6 @@ ngx_http_wasmtime_host_api_func(const ngx_wasm_wasmtime_host_api_t *api)
     wasm_valtype_vec_new(&result_vec, 1, result);
 
     f = wasm_functype_new(&param_vec, &result_vec);
-
-    for (i = 0; i < api->param_num; i++) {
-        wasm_valtype_delete(param[i]);
-    }
-
-    wasm_valtype_delete(result[0]);
-
     return f;
 }
 

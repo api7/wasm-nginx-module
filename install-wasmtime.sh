@@ -15,9 +15,12 @@
 #
 set -euo pipefail -x
 
-VER=v0.30.0
+VER=v0.35.1
 wget https://github.com/bytecodealliance/wasmtime/releases/download/${VER}/wasmtime-${VER}-x86_64-linux-c-api.tar.xz
 tar -xvf ./wasmtime-${VER}-x86_64-linux-c-api.tar.xz > /dev/null
+if [ -d wasmtime-c-api ]; then
+    rm -rf wasmtime-c-api
+fi
 mv wasmtime-${VER}-x86_64-linux-c-api wasmtime-c-api
 if echo "int main(void) {}" | gcc -o /dev/null -v -x c - &> /dev/stdout| grep collect | tr -s " " "\012" | grep musl; then
     # build from source code if the libc is musl
