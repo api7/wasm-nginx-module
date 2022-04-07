@@ -199,6 +199,10 @@ ngx_http_wasm_init(ngx_conf_t *cf)
 }
 
 
+/* To avoid complex error handling, we choose to allocate several objects together.
+ * The downside is that the objects are not alignment, but it is fine under x86 & ARM64, which
+ * are the only platforms supported by most of the Wasm VM. */
+__attribute__((no_sanitize("undefined")))
 void *
 ngx_http_wasm_load_plugin(const char *name, size_t name_len,
                           const char *bytecode, size_t size)
