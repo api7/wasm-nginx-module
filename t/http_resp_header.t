@@ -372,3 +372,50 @@ qr/get response header: \S+ \d+/
 --- grep_error_log_out
 get response header: :status 502
 --- error_code: 502
+
+
+
+=== TEST 19: response set status
+--- config
+location /t {
+    return 200;
+    header_filter_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'resp_hdr_set_status'))
+        assert(wasm.on_http_response_headers(ctx))
+    }
+}
+--- error_code: 501
+
+
+
+=== TEST 20: response set bad status
+--- config
+location /t {
+    return 200;
+    header_filter_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'resp_hdr_set_status_bad_val'))
+        assert(wasm.on_http_response_headers(ctx))
+    }
+}
+--- error_log
+invalid value
+
+
+
+=== TEST 21: response del status
+--- config
+location /t {
+    return 200;
+    header_filter_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'resp_hdr_del_status'))
+        assert(wasm.on_http_response_headers(ctx))
+    }
+}
+--- error_log
+can't remove pseudo header
