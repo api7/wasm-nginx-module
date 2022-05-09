@@ -146,6 +146,19 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 			return types.ActionContinue
 		}
 		proxywasm.LogWarnf("get request scheme: %v", res)
+
+	case "req_pseduo_del":
+		proxywasm.RemoveHttpRequestHeader(":method")
+		proxywasm.RemoveHttpRequestHeader(":path")
+
+	case "req_path_set":
+		val := string(conf.GetStringBytes("value"))
+		proxywasm.ReplaceHttpRequestHeader(":path", val)
+
+	case "req_method_set":
+		val := string(conf.GetStringBytes("value"))
+		proxywasm.ReplaceHttpRequestHeader(":method", val)
+
 	}
 
 	return types.ActionContinue
@@ -249,6 +262,13 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 			return types.ActionContinue
 		}
 		proxywasm.LogWarnf("get response header: %v", res)
+
+	case "resp_hdr_set_status":
+		proxywasm.ReplaceHttpResponseHeader(":status", "501")
+	case "resp_hdr_set_status_bad_val":
+		proxywasm.ReplaceHttpResponseHeader(":status", "")
+	case "resp_hdr_del_status":
+		proxywasm.RemoveHttpResponseHeader(":status")
 	}
 
 	return types.ActionContinue

@@ -31,7 +31,7 @@ typedef struct {
     ngx_str_t   name;
     ngx_uint_t  ty;
     ngx_str_t  *(*getter) (ngx_http_request_t *r);
-} ngx_http_wasm_h2_header_t;
+} ngx_http_wasm_pseudo_header_t;
 
 
 #define STR_BUF_SIZE    4096
@@ -59,30 +59,31 @@ typedef struct {
     }
 
 #define PROXY_WASM_REQ_HEADER_STATIC_TABLE_ENTRIES \
-    (sizeof(wasm_h2_req_header_static_table) \
-     / sizeof(ngx_http_wasm_h2_header_t))
+    (sizeof(wasm_pseudo_req_header_static_table) \
+     / sizeof(ngx_http_wasm_pseudo_header_t))
 
 #define PROXY_WASM_RESP_HEADER_STATIC_TABLE_ENTRIES \
-    (sizeof(wasm_h2_resp_header_static_table) \
-     / sizeof(ngx_http_wasm_h2_header_t))
+    (sizeof(wasm_pseudo_resp_header_static_table) \
+     / sizeof(ngx_http_wasm_pseudo_header_t))
 
 
 static ngx_str_t *ngx_http_wasm_get_path(ngx_http_request_t *r);
 static ngx_str_t *ngx_http_wasm_get_method(ngx_http_request_t *r);
 static ngx_str_t *ngx_http_wasm_get_scheme(ngx_http_request_t *r);
 static ngx_str_t *ngx_http_wasm_get_status(ngx_http_request_t *r);
-static ngx_str_t *ngx_http_wasm_get_h2_header(ngx_http_request_t *r,
-                                              u_char *key_data, size_t key_size, int ty);
-static ngx_str_t *ngx_http_wasm_get_h2_req_header(ngx_http_request_t *r,
-                                                  u_char *key_data, size_t key_size);
-static ngx_str_t *ngx_http_wasm_get_h2_resp_header(ngx_http_request_t *r,
-                                                   u_char *key_data, size_t key_size);
+static ngx_str_t *ngx_http_wasm_get_pseudo_header(ngx_http_request_t *r,
+                                                  u_char *key_data, size_t key_size, int ty);
+static ngx_str_t *ngx_http_wasm_get_pseudo_req_header(ngx_http_request_t *r,
+                                                      u_char *key_data, size_t key_size);
+static ngx_str_t *ngx_http_wasm_get_pseudo_resp_header(ngx_http_request_t *r,
+                                                       u_char *key_data, size_t key_size);
 
 static int (*get_phase) (ngx_http_request_t *r, char **err);
 static int (*set_resp_header) (ngx_http_request_t *r,
     const char *key_data, size_t key_len, int is_nil,
     const char *sval, size_t sval_len, ngx_str_t *mvals,
     size_t mvals_len, int override, char **errmsg);
+static int (*set_resp_status) (ngx_http_request_t *r, int status);
 static int (*get_resp_header) (ngx_http_request_t *r,
     const unsigned char *key, size_t key_len,
     unsigned char *key_buf, ngx_str_t *values,
@@ -109,13 +110,13 @@ static ngx_str_t scheme_http = ngx_string("http");
 static unsigned char status_data_buf[NGX_INT_T_LEN];
 static ngx_str_t status_str = { 0, status_data_buf };
 
-static ngx_http_wasm_h2_header_t wasm_h2_req_header_static_table[] = {
+static ngx_http_wasm_pseudo_header_t wasm_pseudo_req_header_static_table[] = {
+    {ngx_string(":scheme"), PROXY_WASM_REQUEST_HEADER_SCHEME, ngx_http_wasm_get_scheme},
     {ngx_string(":path"),   PROXY_WASM_REQUEST_HEADER_PATH, ngx_http_wasm_get_path},
     {ngx_string(":method"), PROXY_WASM_REQUEST_HEADER_METHOD, ngx_http_wasm_get_method},
-    {ngx_string(":scheme"), PROXY_WASM_REQUEST_HEADER_SCHEME, ngx_http_wasm_get_scheme},
 };
 
-static ngx_http_wasm_h2_header_t wasm_h2_resp_header_static_table[] = {
+static ngx_http_wasm_pseudo_header_t wasm_pseudo_resp_header_static_table[] = {
     {ngx_string(":status"), PROXY_WASM_RESPONSE_HEADER_STATUS, ngx_http_wasm_get_status},
 };
 
@@ -129,6 +130,7 @@ ngx_http_wasm_resolve_symbol(void)
 
     must_resolve_symbol(get_phase, ngx_http_lua_ffi_get_phase);
     must_resolve_symbol(set_resp_header, ngx_http_lua_ffi_set_resp_header);
+    must_resolve_symbol(set_resp_status, ngx_http_lua_ffi_set_resp_status);
     must_resolve_symbol(get_resp_header, ngx_http_lua_ffi_get_resp_header);
     must_resolve_symbol(get_req_headers_count, ngx_http_lua_ffi_req_get_headers_count);
     must_resolve_symbol(get_req_headers, ngx_http_lua_ffi_req_get_headers);
@@ -151,6 +153,64 @@ ngx_http_wasm_is_yieldable(ngx_http_request_t *r)
     }
 
     return (phase & NGX_HTTP_WASM_YIELDABLE) != 0;
+}
+
+
+static ngx_inline ngx_int_t
+ngx_http_wasm_check_unsafe_uri_bytes(ngx_http_request_t *r, u_char *str,
+    size_t len, u_char *byte)
+{
+    size_t           i;
+    u_char           c;
+
+                     /* %00-%08, %0A-%1F, %7F */
+
+    static uint32_t  unsafe[] = {
+        0xfffffdff, /* 1111 1111 1111 1111  1111 1101 1111 1111 */
+
+                    /* ?>=< ;:98 7654 3210  /.-, +*)( '&%$ #"!  */
+        0x00000000, /* 0000 0000 0000 0000  0000 0000 0000 0000 */
+
+                    /* _^]\ [ZYX WVUT SRQP  ONML KJIH GFED CBA@ */
+        0x00000000, /* 0000 0000 0000 0000  0000 0000 0000 0000 */
+
+                    /*  ~}| {zyx wvut srqp  onml kjih gfed cba` */
+        0x80000000, /* 1000 0000 0000 0000  0000 0000 0000 0000 */
+
+        0x00000000, /* 0000 0000 0000 0000  0000 0000 0000 0000 */
+        0x00000000, /* 0000 0000 0000 0000  0000 0000 0000 0000 */
+        0x00000000, /* 0000 0000 0000 0000  0000 0000 0000 0000 */
+        0x00000000  /* 0000 0000 0000 0000  0000 0000 0000 0000 */
+    };
+
+    for (i = 0; i < len; i++, str++) {
+        c = *str;
+        if (unsafe[c >> 5] & (1 << (c & 0x1f))) {
+            *byte = c;
+            return NGX_ERROR;
+        }
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_inline ngx_int_t
+ngx_http_wasm_check_unsafe_method(ngx_http_request_t *r, u_char *str,
+    size_t len, u_char *byte)
+{
+    size_t           i;
+    u_char           c;
+
+    for (i = 0; i < len; i++) {
+        c = str[i];
+        if (!(('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z'))) {
+            *byte = c;
+            return NGX_ERROR;
+        }
+    }
+
+    return NGX_OK;
 }
 
 
@@ -241,11 +301,108 @@ ngx_http_wasm_set_req_header(ngx_http_request_t *r,
     const char *val, size_t val_len,
     int override)
 {
-    char               *errmsg = NULL;
-    ngx_int_t           rc;
+    char                          *errmsg = NULL;
+    ngx_int_t                      rc = NGX_OK;
+    ngx_uint_t                     found = 0;
+    ngx_uint_t                     i, entries;
+    ngx_http_wasm_pseudo_header_t *wh, *whs;
 
-    rc = set_req_header(r, key, key_len, val, val_len, NULL, 0,
-                        override, &errmsg);
+    if (key_len > 0 && key[0] == ':') {
+        entries = (ngx_uint_t) PROXY_WASM_REQ_HEADER_STATIC_TABLE_ENTRIES;
+        whs = &wasm_pseudo_req_header_static_table[0];
+
+        if (val_len == 0) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                          "failed to set request header %*s: can't remove pseudo header",
+                          key_len, key);
+            return NGX_ERROR;
+        }
+
+        /* skip :scheme which is readonly */
+        for (i = 1; i < entries; i++) {
+            wh = whs + i;
+
+            if (key_len != wh->name.len) {
+                continue;
+            }
+
+            if (ngx_strncasecmp((u_char *) key, wh->name.data, wh->name.len) == 0) {
+                u_char *p;
+
+                found = 1;
+
+                if (wh->ty == PROXY_WASM_REQUEST_HEADER_PATH) {
+                    u_char              byte;
+
+                    if (ngx_http_wasm_check_unsafe_uri_bytes(r, (u_char *) val, val_len, &byte)
+                        != NGX_OK)
+                    {
+                        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                                      "failed to set request header %*s: invalid char \"%d\"",
+                                      key_len, key, byte);
+
+                        return NGX_ERROR;
+                    }
+
+                    p = ngx_palloc(r->pool, val_len);
+                    if (p == NULL) {
+                        return NGX_ERROR;
+                    }
+                    r->uri.data = p;
+
+                    ngx_memcpy(r->uri.data, val, val_len);
+
+                    r->uri.len = val_len;
+
+                    r->internal = 1;
+                    r->valid_unparsed_uri = 0;
+
+                    ngx_http_set_exten(r);
+
+                    r->valid_location = 0;
+                    r->uri_changed = 0;
+
+                } else {
+                    /* method */
+                    u_char              byte;
+
+                    if (ngx_http_wasm_check_unsafe_method(r, (u_char *) val, val_len, &byte)
+                        != NGX_OK)
+                    {
+                        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                                      "failed to set request header %*s: invalid char \"%d\"",
+                                      key_len, key, byte);
+
+                        return NGX_ERROR;
+                    }
+
+                    p = ngx_palloc(r->pool, val_len);
+                    if (p == NULL) {
+                        return NGX_ERROR;
+                    }
+                    r->method_name.data = p;
+
+                    /* according to RFC 2616, "The Method token indicates
+                     * the method to be performed on the resource identified by
+                     * the Request-URI. The method is case-sensitive.",
+                     * the caller should take care of the case of the input */
+
+                    /* we don't restrict the range of method so
+                     * the caller can use her custom verb like "PURGE" */
+                    ngx_memcpy(r->method_name.data, val, val_len);
+                    r->method_name.len = val_len;
+                }
+
+                break;
+            }
+        }
+    }
+
+    if (!found) {
+        rc = set_req_header(r, key, key_len, val, val_len, NULL, 0,
+                            override, &errmsg);
+    }
+
     if (rc != NGX_OK && rc != NGX_DECLINED) {
         if (rc == FFI_BAD_CONTEXT) {
             errmsg = err_bad_ctx;
@@ -273,8 +430,29 @@ ngx_http_wasm_set_resp_header(ngx_http_request_t *r,
     char               *errmsg = NULL;
     ngx_int_t           rc;
 
-    rc = set_resp_header(r, key, key_len, is_nil, val, val_len, NULL, 0,
-                         override, &errmsg);
+    if (key_len == 7 && ngx_strncasecmp((u_char *) key, (u_char *) ":status", 7) == 0) {
+        if (is_nil) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                          "failed to set response header %*s: can't remove pseudo header",
+                          key_len, key);
+            return NGX_ERROR;
+        }
+
+        rc = ngx_atoi((u_char *) val, val_len);
+        if (rc == NGX_ERROR) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                          "failed to set response header %*s: invalid value",
+                          key_len, key);
+            return NGX_ERROR;
+        }
+
+        rc = set_resp_status(r, rc);
+
+    } else {
+        rc = set_resp_header(r, key, key_len, is_nil, val, val_len, NULL, 0,
+                             override, &errmsg);
+    }
+
     if (rc != NGX_OK && rc != NGX_DECLINED) {
         if (rc == FFI_BAD_CONTEXT) {
             errmsg = err_bad_ctx;
@@ -685,18 +863,18 @@ ngx_http_wasm_get_status(ngx_http_request_t *r)
 
 
 static ngx_str_t *
-ngx_http_wasm_get_h2_header(ngx_http_request_t *r, u_char *key_data, size_t key_size, int ty) {
+ngx_http_wasm_get_pseudo_header(ngx_http_request_t *r, u_char *key_data, size_t key_size, int ty) {
     ngx_str_t                 *h = NULL;
     ngx_uint_t                 i, entries;
-    ngx_http_wasm_h2_header_t *wh, *whs;
+    ngx_http_wasm_pseudo_header_t *wh, *whs;
 
     if (ty == PROXY_WASM_REQUEST_HEADER) {
         entries = (ngx_uint_t) PROXY_WASM_REQ_HEADER_STATIC_TABLE_ENTRIES;
-        whs = &wasm_h2_req_header_static_table[0];
+        whs = &wasm_pseudo_req_header_static_table[0];
 
     } else if (ty == PROXY_WASM_RESPONSE_HEADER) {
         entries = (ngx_uint_t) PROXY_WASM_RESP_HEADER_STATIC_TABLE_ENTRIES;
-        whs = &wasm_h2_resp_header_static_table[0];
+        whs = &wasm_pseudo_resp_header_static_table[0];
 
     } else {
         return NULL;
@@ -725,14 +903,14 @@ ngx_http_wasm_get_h2_header(ngx_http_request_t *r, u_char *key_data, size_t key_
 
 
 static ngx_str_t *
-ngx_http_wasm_get_h2_req_header(ngx_http_request_t *r, u_char *key_data, size_t key_size) {
-    return ngx_http_wasm_get_h2_header(r, key_data, key_size, PROXY_WASM_REQUEST_HEADER);
+ngx_http_wasm_get_pseudo_req_header(ngx_http_request_t *r, u_char *key_data, size_t key_size) {
+    return ngx_http_wasm_get_pseudo_header(r, key_data, key_size, PROXY_WASM_REQUEST_HEADER);
 }
 
 
 static ngx_str_t *
-ngx_http_wasm_get_h2_resp_header(ngx_http_request_t *r, u_char *key_data, size_t key_size) {
-    return ngx_http_wasm_get_h2_header(r, key_data, key_size, PROXY_WASM_RESPONSE_HEADER);
+ngx_http_wasm_get_pseudo_resp_header(ngx_http_request_t *r, u_char *key_data, size_t key_size) {
+    return ngx_http_wasm_get_pseudo_header(r, key_data, key_size, PROXY_WASM_RESPONSE_HEADER);
 }
 
 
@@ -749,7 +927,8 @@ ngx_http_wasm_req_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size_
     char                      *key;
     char                      *val;
     ngx_str_t                 *s;
-    ngx_http_wasm_h2_header_t *wh;
+
+    ngx_http_wasm_pseudo_header_t *wh;
 
     log = r->connection->log;
 
@@ -781,7 +960,7 @@ ngx_http_wasm_req_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size_
 
     /* count pseudo headers :path, :method, :scheme */
     for (i = 0; i < (ngx_int_t) PROXY_WASM_REQ_HEADER_STATIC_TABLE_ENTRIES; i++) {
-        wh = &wasm_h2_req_header_static_table[i];
+        wh = &wasm_pseudo_req_header_static_table[i];
         s = wh->getter(r);
         size += wh->name.len + 1 + s->len + 1;
     }
@@ -810,7 +989,7 @@ ngx_http_wasm_req_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size_
 
     /* get pseudo headers :path, :method, :scheme */
     for (i = 0; i < (ngx_int_t) PROXY_WASM_REQ_HEADER_STATIC_TABLE_ENTRIES; i++) {
-        wh = &wasm_h2_req_header_static_table[i];
+        wh = &wasm_pseudo_req_header_static_table[i];
         s = wh->getter(r);
 
         proxy_wasm_map_reserve(&it, &key, wh->name.len,
@@ -1084,7 +1263,7 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
 {
     ngx_log_t                 *log;
     ngx_uint_t                 i;
-    ngx_str_t                 *h2h;
+    ngx_str_t                 *ph;
     ngx_list_part_t           *part;
     ngx_table_elt_t           *header;
     unsigned char             *key_buf = NULL;
@@ -1096,10 +1275,10 @@ ngx_http_wasm_req_get_header(ngx_http_request_t *r, char *key,  int32_t key_size
     header = part->elts;
     key_buf = (u_char *) key;
 
-    h2h = ngx_http_wasm_get_h2_req_header(r, key_buf, key_size);
-    if (h2h) {
-        val = h2h->data;
-        val_len = h2h->len;
+    ph = ngx_http_wasm_get_pseudo_req_header(r, key_buf, key_size);
+    if (ph) {
+        val = ph->data;
+        val_len = ph->len;
         goto done;
     }
 
@@ -1148,7 +1327,7 @@ ngx_http_wasm_resp_get_header(ngx_http_request_t *r, char *key,  int32_t key_siz
     char                *errmsg = NULL;
     ngx_log_t           *log;
     unsigned char       *key_buf;
-    ngx_str_t           *values, *h2h;
+    ngx_str_t           *values, *ph;
 
 
     log = r->connection->log;
@@ -1160,9 +1339,9 @@ ngx_http_wasm_resp_get_header(ngx_http_request_t *r, char *key,  int32_t key_siz
 
     values = (ngx_str_t *) (key_buf + key_size);
 
-    h2h = ngx_http_wasm_get_h2_resp_header(r, (u_char *) key, key_size);
-    if (h2h) {
-        values = h2h;
+    ph = ngx_http_wasm_get_pseudo_resp_header(r, (u_char *) key, key_size);
+    if (ph) {
+        values = ph;
         goto done;
     }
 

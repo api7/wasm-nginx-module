@@ -111,9 +111,9 @@ qr/get request header: [^,]+/
 get request header: host localhost
 get request header: connection close
 get request header: x-api foo
+get request header: :scheme http
 get request header: :path /t
 get request header: :method GET
-get request header: :scheme http
 
 
 
@@ -137,9 +137,9 @@ get request header: host localhost
 get request header: connection close
 get request header: x-api foo
 get request header: x-api bar
+get request header: :scheme http
 get request header: :path /t
 get request header: :method GET
-get request header: :scheme http
 
 
 
@@ -465,3 +465,142 @@ location /t {
 qr/get request scheme: \S+/
 --- grep_error_log_out
 get request scheme: http,
+
+
+
+=== TEST 24: delete pseduo headers
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_pseduo_del'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- error_log
+[error]
+--- grep_error_log eval
+qr/can't remove pseudo header/
+--- grep_error_log_out
+can't remove pseudo header
+can't remove pseudo header
+
+
+
+=== TEST 25: set path, abnormal
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local conf = {action = 'req_path_set'}
+        for _, e in ipairs({
+            "a\r\na",
+        }) do
+            conf.value = e
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_request_headers(ctx))
+        end
+        ngx.say(ngx.var.uri)
+    }
+}
+--- error_log
+[error]
+--- grep_error_log eval
+qr/failed to set request header :path: invalid char/
+--- grep_error_log_out
+failed to set request header :path: invalid char
+--- response_body
+/t
+
+
+
+=== TEST 26: set path
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local conf = {action = 'req_path_set'}
+        for _, e in ipairs({
+            "a",
+            "ac",
+            "a?",
+            "a?a",
+            "a?a=c",
+        }) do
+            conf.value = e
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_request_headers(ctx))
+            ngx.say(ngx.var.uri)
+        end
+    }
+}
+--- response_body
+a
+ac
+a?
+a?a
+a?a=c
+
+
+
+=== TEST 27: set method, abnormal
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local conf = {action = 'req_method_set'}
+        for _, e in ipairs({
+            "a\nc",
+            "a c",
+        }) do
+            conf.value = e
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_request_headers(ctx))
+        end
+        ngx.say(ngx.var.request_method)
+    }
+}
+--- error_log
+[error]
+--- grep_error_log eval
+qr/failed to set request header :method: invalid char/
+--- grep_error_log_out
+failed to set request header :method: invalid char
+failed to set request header :method: invalid char
+--- response_body
+GET
+
+
+
+=== TEST 28: set method
+--- config
+location /t {
+    content_by_lua_block {
+        local json = require("cjson")
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local conf = {action = 'req_method_set'}
+        for _, e in ipairs({
+            "GET",
+            "POST",
+            "PURGE"
+        }) do
+            conf.value = e
+            local ctx = assert(wasm.on_configure(plugin, json.encode(conf)))
+            assert(wasm.on_http_request_headers(ctx))
+            ngx.say(ngx.var.request_method)
+        end
+    }
+}
+--- response_body
+GET
+POST
+PURGE

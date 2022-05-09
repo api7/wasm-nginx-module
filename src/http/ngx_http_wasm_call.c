@@ -24,7 +24,7 @@
 typedef struct {
     ngx_str_t   name;
     ngx_uint_t  ty;
-} proxy_wasm_h2_header_t;
+} proxy_wasm_pseudo_header_t;
 
 
 typedef struct {
@@ -35,7 +35,7 @@ typedef struct {
 } proxy_wasm_callout_t;
 
 
-static proxy_wasm_h2_header_t proxy_wasm_h2_headers[] = {
+static proxy_wasm_pseudo_header_t proxy_wasm_pseudo_headers[] = {
     {ngx_string(":path"),   PROXY_WASM_REQUEST_HEADER_PATH},
     {ngx_string(":method"), PROXY_WASM_REQUEST_HEADER_METHOD},
     {ngx_string(":scheme"), PROXY_WASM_REQUEST_HEADER_SCHEME},
@@ -136,10 +136,10 @@ ngx_http_wasm_call_get(ngx_http_request_t *r, ngx_str_t *method, ngx_str_t *sche
         }
 
         if (key[0] == ':') {
-            for (i = 0; proxy_wasm_h2_headers[i].ty > 0; i++) {
-                proxy_wasm_h2_header_t      *wh;
+            for (i = 0; proxy_wasm_pseudo_headers[i].ty > 0; i++) {
+                proxy_wasm_pseudo_header_t      *wh;
 
-                wh = &proxy_wasm_h2_headers[i];
+                wh = &proxy_wasm_pseudo_headers[i];
 
                 if ((size_t) key_len != wh->name.len) {
                     continue;
