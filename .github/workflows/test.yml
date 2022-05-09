@@ -62,10 +62,6 @@ jobs:
       - name: Script
         run: |
           sudo chown -R runner:root ~/.cache
-          make build.go.testdata
-
-          pushd ./t/testdata/assemblyscript && npm install && npm run asbuild && popd
-          pushd ./t/testdata/rust && cargo build --target=wasm32-wasi && popd
-
+          make build.all.testdata
           export PATH=$OPENRESTY_PREFIX/nginx/sbin:$PATH
           WASM_VM=wasmtime prove -I. -Itest-nginx/lib -r t/

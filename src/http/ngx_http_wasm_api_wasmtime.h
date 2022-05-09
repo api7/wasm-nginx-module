@@ -274,6 +274,10 @@ DEFINE_WASM_API(proxy_continue_response,
                 DEFINE_WASM_API_ARG_CHECK_VOID(proxy_continue_response))
 DEFINE_WASM_API(proxy_clear_route_cache,
                 DEFINE_WASM_API_ARG_CHECK_VOID(proxy_clear_route_cache))
+DEFINE_WASM_API(proxy_continue_stream,
+                DEFINE_WASM_API_ARG_CHECK_I32_1(proxy_continue_stream))
+DEFINE_WASM_API(proxy_close_stream,
+                DEFINE_WASM_API_ARG_CHECK_I32_1(proxy_close_stream))
 DEFINE_WASM_API(proxy_http_call,
                 DEFINE_WASM_API_ARG_CHECK_I32_10(proxy_http_call))
 DEFINE_WASM_API(proxy_grpc_call,
@@ -290,6 +294,8 @@ DEFINE_WASM_API(proxy_get_status,
                 DEFINE_WASM_API_ARG_CHECK_I32_3(proxy_get_status))
 DEFINE_WASM_API(proxy_done,
                 DEFINE_WASM_API_ARG_CHECK_VOID(proxy_done))
+DEFINE_WASM_API(proxy_call_foreign_function,
+                DEFINE_WASM_API_ARG_CHECK_I32_6(proxy_call_foreign_function))
 
 static ngx_wasm_wasmtime_host_api_t host_apis[] = {
     DEFINE_WASM_NAME(proxy_set_effective_context, DEFINE_WASM_NAME_ARG_I32_1)
@@ -318,6 +324,8 @@ static ngx_wasm_wasmtime_host_api_t host_apis[] = {
     DEFINE_WASM_NAME(proxy_continue_request, DEFINE_WASM_NAME_ARG_VOID)
     DEFINE_WASM_NAME(proxy_continue_response, DEFINE_WASM_NAME_ARG_VOID)
     DEFINE_WASM_NAME(proxy_clear_route_cache, DEFINE_WASM_NAME_ARG_VOID)
+    DEFINE_WASM_NAME(proxy_continue_stream, DEFINE_WASM_NAME_ARG_I32_1)
+    DEFINE_WASM_NAME(proxy_close_stream, DEFINE_WASM_NAME_ARG_I32_1)
     DEFINE_WASM_NAME(proxy_http_call, DEFINE_WASM_NAME_ARG_I32_10)
     DEFINE_WASM_NAME(proxy_grpc_call, DEFINE_WASM_NAME_ARG_I32_12)
     DEFINE_WASM_NAME(proxy_grpc_stream, DEFINE_WASM_NAME_ARG_I32_9)
@@ -326,6 +334,7 @@ static ngx_wasm_wasmtime_host_api_t host_apis[] = {
     DEFINE_WASM_NAME(proxy_grpc_close, DEFINE_WASM_NAME_ARG_I32_1)
     DEFINE_WASM_NAME(proxy_get_status, DEFINE_WASM_NAME_ARG_I32_3)
     DEFINE_WASM_NAME(proxy_done, DEFINE_WASM_NAME_ARG_VOID)
+    DEFINE_WASM_NAME(proxy_call_foreign_function, DEFINE_WASM_NAME_ARG_I32_6)
     { ngx_null_string, NULL, 0, {} }
 };
 

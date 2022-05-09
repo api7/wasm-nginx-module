@@ -9,5 +9,5 @@ wasmtime-c-api
 
 t/servroot
 node_modules/
-t/testdata/rust/target
+t/testdata/rust/*/target
 utils/reindex
