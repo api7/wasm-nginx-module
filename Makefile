@@ -14,6 +14,7 @@
 #
 OPENRESTY_PREFIX ?= /usr/local/openresty
 INSTALL ?= install
+RUST_DIR = $(wildcard t/testdata/rust/*)
 
 .PHONY: install
 install:
@@ -28,10 +29,20 @@ build.go.testdata:
 build.testdata:
 	@find ./t/testdata -type f -name "main.go" | grep ${name} | xargs -Ip tinygo build -o p.wasm -scheduler=none -target=wasi p
 
-.PHONY: build.all.testdata
-build.all.testdata: build.go.testdata
+.PHONY: build.assemblyscript.testdata
+build.assemblyscript.testdata:
 	@cd ./t/testdata/assemblyscript && npm install && npm run asbuild
-	@cd ./t/testdata/rust &&  cargo build --target=wasm32-wasi
+
+.PHONY: build.rust.testdata
+build.rust.testdata:
+	$(foreach DIR, $(RUST_DIR), \
+		cd $(DIR) && \
+		cargo build --target=wasm32-wasi && \
+		cd ../../../..; \
+	)
+
+.PHONY: build.all.testdata
+build.all.testdata: build.go.testdata build.assemblyscript.testdata build.rust.testdata
 
 .PHONY: utils
 utils:

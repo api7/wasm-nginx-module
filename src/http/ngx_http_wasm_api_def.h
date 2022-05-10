@@ -80,6 +80,8 @@ int32_t proxy_enqueue_shared_queue(DEFINE_WASM_API_ARG_I32_3);
 int32_t proxy_continue_request(DEFINE_WASM_API_ARG_VOID);
 int32_t proxy_continue_response(DEFINE_WASM_API_ARG_VOID);
 int32_t proxy_clear_route_cache(DEFINE_WASM_API_ARG_VOID);
+int32_t proxy_continue_stream(DEFINE_WASM_API_ARG_I32_1);
+int32_t proxy_close_stream(DEFINE_WASM_API_ARG_I32_1);
 int32_t proxy_http_call(DEFINE_WASM_API_ARG_I32_10);
 int32_t proxy_grpc_call(DEFINE_WASM_API_ARG_I32_12);
 int32_t proxy_grpc_stream(DEFINE_WASM_API_ARG_I32_9);
@@ -88,6 +90,7 @@ int32_t proxy_grpc_cancel(DEFINE_WASM_API_ARG_I32_1);
 int32_t proxy_grpc_close(DEFINE_WASM_API_ARG_I32_1);
 int32_t proxy_get_status(DEFINE_WASM_API_ARG_I32_3);
 int32_t proxy_done(DEFINE_WASM_API_ARG_VOID);
+int32_t proxy_call_foreign_function(DEFINE_WASM_API_ARG_I32_6);
 
 
 

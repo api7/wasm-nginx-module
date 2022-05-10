@@ -27,7 +27,7 @@ header:
     - 't/certs/'
     - 't/testdata/assemblyscript/node_modules/'
     - 't/testdata/assemblyscript/build/'
-    - 't/testdata/rust/Cargo.lock'
+    - '**/Cargo.lock'
     - '**/*.json'
     # Exclude dev files
     - '.ccls-cache/'

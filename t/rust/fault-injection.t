@@ -24,7 +24,7 @@ location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
         local plugin = assert(wasm.load("fault_injection",
-            "t/testdata/rust/target/wasm32-wasi/debug/fault_injection.wasm"))
+            "t/testdata/rust/fault-injection/target/wasm32-wasi/debug/fault_injection.wasm"))
         local ctx = assert(wasm.on_configure(plugin, '{"http_status": 403, "body": "body"}'))
         assert(wasm.on_http_request_headers(ctx))
     }
@@ -41,7 +41,7 @@ location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
         local plugin = assert(wasm.load("fault_injection",
-            "t/testdata/rust/target/wasm32-wasi/debug/fault_injection.wasm"))
+            "t/testdata/rust/fault-injection/target/wasm32-wasi/debug/fault_injection.wasm"))
         local ctx = assert(wasm.on_configure(plugin, '{"http_status": 401}'))
         assert(wasm.on_http_request_headers(ctx))
     }
@@ -58,7 +58,7 @@ location /t {
     content_by_lua_block {
         local wasm = require("resty.proxy-wasm")
         local plugin = assert(wasm.load("fault_injection",
-            "t/testdata/rust/target/wasm32-wasi/debug/fault_injection.wasm"))
+            "t/testdata/rust/fault-injection/target/wasm32-wasi/debug/fault_injection.wasm"))
         local ctx = assert(wasm.on_configure(plugin, '{"http_status": 401, "percentage": 0}'))
         assert(wasm.on_http_request_headers(ctx))
     }

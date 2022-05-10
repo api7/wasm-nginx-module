@@ -710,7 +710,7 @@ int32_t
 proxy_set_buffer_bytes(int32_t type, int32_t start, int32_t length,
                        int32_t addr, int32_t size_addr)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
@@ -789,14 +789,14 @@ proxy_send_http_response(int32_t res_code,
 int32_t
 proxy_get_current_time_nanoseconds(int32_t time_addr)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
 int32_t
 proxy_set_tick_period_milliseconds(int32_t tick)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
@@ -1253,7 +1253,7 @@ proxy_get_header_map_pairs(int32_t type, int32_t addr, int32_t size_addr)
 int32_t
 proxy_set_header_map_pairs(int32_t type, int32_t data, int32_t size)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
@@ -1504,7 +1504,7 @@ proxy_get_shared_data(int32_t key_data, int32_t key_size,
                       int32_t addr, int32_t size,
                       int32_t cas)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
@@ -1513,14 +1513,14 @@ proxy_set_shared_data(int32_t key_data, int32_t key_size,
                       int32_t data, int32_t size,
                       int32_t cas)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
 int32_t
 proxy_register_shared_queue(int32_t data, int32_t size, int32_t id)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
@@ -1529,21 +1529,21 @@ proxy_resolve_shared_queue(int32_t vm_id_data, int32_t vm_id_size,
                            int32_t name_data, int32_t name_size,
                            int32_t return_id)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
 int32_t
 proxy_dequeue_shared_queue(int32_t id, int32_t addr, int32_t size)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
 int32_t
 proxy_enqueue_shared_queue(int32_t id, int32_t addr, int32_t size)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
@@ -1564,6 +1564,22 @@ proxy_continue_response(void)
 int32_t
 proxy_clear_route_cache(void)
 {
+    return PROXY_RESULT_UNIMPLEMENTED;
+}
+
+
+int32_t
+proxy_continue_stream(int32_t stream_type)
+{
+    /* we don't need to continue the HTTP request as it always waits the HTTP call to finish */
+    return PROXY_RESULT_OK;
+}
+
+
+int32_t
+proxy_close_stream(int32_t stream_type)
+{
+    /* do nothing */
     return PROXY_RESULT_OK;
 }
 
@@ -1675,7 +1691,7 @@ proxy_grpc_call(int32_t service_data, int32_t service_size,
                 int32_t request_data, int32_t request_size,
                 int32_t timeout, int32_t callout_addr)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
@@ -1686,7 +1702,7 @@ proxy_grpc_stream(int32_t service_data, int32_t service_size,
                   int32_t metadata_data, int32_t metadata_size,
                   int32_t callout_addr)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
@@ -1694,33 +1710,42 @@ int32_t
 proxy_grpc_send(int32_t id, int32_t message_data, int32_t message_size,
                 int32_t end_of_stream)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
 int32_t
 proxy_grpc_cancel(int32_t id)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
 int32_t
 proxy_grpc_close(int32_t id)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
 int32_t
 proxy_get_status(int32_t code, int32_t addr, int32_t size)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
 }
 
 
 int32_t
 proxy_done(void)
 {
-    return PROXY_RESULT_OK;
+    return PROXY_RESULT_UNIMPLEMENTED;
+}
+
+
+int32_t
+proxy_call_foreign_function(int32_t fn_data, int32_t fn_size,
+                            int32_t param_data, int32_t param_size,
+                            int32_t res_data, int32_t res_size)
+{
+    return PROXY_RESULT_UNIMPLEMENTED;
 }

@@ -34,6 +34,7 @@ static bool     ngx_http_wasm_vm_inited = false;
 
 
 static ngx_str_t plugin_start = ngx_string("_start");
+static ngx_str_t plugin_initialize = ngx_string("_initialize");
 static ngx_str_t abi_versions[] = {
     ngx_string("proxy_abi_version_0_1_0"),
     ngx_string("proxy_abi_version_0_2_0"),
@@ -223,8 +224,14 @@ ngx_http_wasm_load_plugin(const char *name, size_t name_len,
         return NULL;
     }
 
-    rc = ngx_wasm_vm->call(plugin, &plugin_start, false,
-                          NGX_WASM_PARAM_VOID);
+    if (ngx_wasm_vm->has(plugin, &plugin_start)) {
+        rc = ngx_wasm_vm->call(plugin, &plugin_start, false, NGX_WASM_PARAM_VOID);
+    } else if (ngx_wasm_vm->has(plugin, &plugin_initialize)) {
+        rc = ngx_wasm_vm->call(plugin, &plugin_initialize, false, NGX_WASM_PARAM_VOID);
+    } else {
+        rc = NGX_OK;
+    }
+
     if (rc != NGX_OK) {
         goto free_plugin;
     }

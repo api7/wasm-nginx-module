@@ -53,7 +53,7 @@ impl Context for FaultInjectionRoot {}
 
 impl RootContext for FaultInjectionRoot {
     fn on_configure(&mut self, _: usize) -> bool {
-        if let Some(config_bytes) = self.get_configuration() {
+        if let Some(config_bytes) = self.get_plugin_configuration() {
             let conf : Conf = serde_json::from_str(&*String::from_utf8(config_bytes).unwrap()
                                                    ).unwrap();
             self.conf = conf;
@@ -79,7 +79,7 @@ struct FaultInjection {
 impl Context for FaultInjection {}
 
 impl HttpContext for FaultInjection {
-    fn on_http_request_headers(&mut self, _: usize) -> Action {
+    fn on_http_request_headers(&mut self, _: usize, _: bool) -> Action {
         let mut rng = rand::thread_rng();
 
         let rd = rng.gen_range(0..100);
