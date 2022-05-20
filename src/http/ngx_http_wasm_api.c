@@ -658,30 +658,26 @@ proxy_get_buffer_bytes(int32_t type, int32_t start, int32_t size,
     switch (type) {
     case PROXY_BUFFER_TYPE_PLUGIN_CONFIGURATION:
         buffer = ngx_http_wasm_get_conf();
-        if (buffer != NULL) {
-            data = buffer->data;
-            len = buffer->len;
-        }
         break;
 
     case PROXY_BUFFER_TYPE_HTTP_REQUEST_BODY:
     case PROXY_BUFFER_TYPE_HTTP_RESPONSE_BODY:
         buffer = ngx_http_wasm_get_body();
-        if (buffer != NULL) {
-            data = buffer->data;
-            len = buffer->len;
-        }
         break;
 
     case PROXY_BUFFER_TYPE_HTTP_CALL_RESPONSE_BODY:
         must_get_req(r);
         ctx = ngx_http_wasm_get_module_ctx(r);
-        data = ctx->call_resp_body->data;
-        len = ctx->call_resp_body->len;
+        buffer = ctx->call_resp_body;
         break;
 
     default:
         return PROXY_RESULT_UNIMPLEMENTED;
+    }
+
+    if (buffer != NULL) {
+        data = buffer->data;
+        len = buffer->len;
     }
 
     if (len == 0) {
@@ -1243,7 +1239,7 @@ proxy_get_header_map_pairs(int32_t type, int32_t addr, int32_t size_addr)
         return ngx_http_wasm_http_call_resp_get_headers(r, addr, size_addr);
 
     default:
-        return PROXY_RESULT_BAD_ARGUMENT;
+        return PROXY_RESULT_UNIMPLEMENTED;
     }
 
     return PROXY_RESULT_OK;
@@ -1370,6 +1366,46 @@ done:
 }
 
 
+static int32_t
+ngx_http_wasm_http_call_resp_get_header(ngx_http_request_t *r, char *key,  int32_t key_size,
+                                        int32_t addr, int32_t size)
+{
+    ngx_log_t                  *log;
+    ngx_uint_t                  i;
+    ngx_http_wasm_ctx_t        *ctx;
+    proxy_wasm_table_elt_t     *hdr;
+    const u_char               *val = NULL;
+    int32_t                     val_len = 0;
+
+    log = r->connection->log;
+
+    ctx = ngx_http_wasm_get_module_ctx(r);
+    if (ctx->call_resp_n_header == 0) {
+        return PROXY_RESULT_NOT_FOUND;
+    }
+
+    hdr = ctx->call_resp_headers;
+
+    for (i = 0; i < ctx->call_resp_n_header; i++) {
+        if ((size_t) key_size != hdr[i].key.len) {
+            continue;
+        }
+
+        if (ngx_strncasecmp((u_char *) key, hdr[i].key.data, hdr[i].key.len) == 0) {
+            val = hdr[i].value.data;
+            val_len = hdr[i].value.len;
+            break;
+        }
+    }
+
+    if (val == NULL) {
+        return PROXY_RESULT_NOT_FOUND;
+    }
+
+    return ngx_http_wasm_copy_to_wasm(log, val, val_len, addr, size);
+}
+
+
 int32_t
 proxy_get_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
                            int32_t addr, int32_t size)
@@ -1387,8 +1423,11 @@ proxy_get_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
     case PROXY_MAP_TYPE_HTTP_RESPONSE_HEADERS:
         return ngx_http_wasm_resp_get_header(r, key, key_size, addr, size);
 
+    case PROXY_MAP_TYPE_HTTP_CALL_RESPONSE_HEADERS:
+        return ngx_http_wasm_http_call_resp_get_header(r, key, key_size, addr, size);
+
     default:
-        return PROXY_RESULT_BAD_ARGUMENT;
+        return PROXY_RESULT_UNIMPLEMENTED;
     }
 
     return PROXY_RESULT_OK;
@@ -1417,7 +1456,7 @@ proxy_remove_header_map_value(int32_t type, int32_t key_data, int32_t key_size)
         break;
 
     default:
-        return PROXY_RESULT_BAD_ARGUMENT;
+        return PROXY_RESULT_UNIMPLEMENTED;
     }
 
     if (rc != NGX_OK) {
@@ -1452,7 +1491,7 @@ proxy_replace_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
         break;
 
     default:
-        return PROXY_RESULT_BAD_ARGUMENT;
+        return PROXY_RESULT_UNIMPLEMENTED;
     }
 
     if (rc != NGX_OK) {
@@ -1487,7 +1526,7 @@ proxy_add_header_map_value(int32_t type, int32_t key_data, int32_t key_size,
         break;
 
     default:
-        return PROXY_RESULT_BAD_ARGUMENT;
+        return PROXY_RESULT_UNIMPLEMENTED;
     }
 
 
