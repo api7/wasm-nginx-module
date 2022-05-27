@@ -20,7 +20,6 @@ RUST_DIR = $(wildcard t/testdata/rust/*)
 install:
 	$(INSTALL) -m 664 lib/resty/*.lua $(OPENRESTY_PREFIX)/lualib/resty/
 	cp -r ./wasmtime-c-api $(OPENRESTY_PREFIX)/
-	cp -r ./wasmedge $(OPENRESTY_PREFIX)/
 
 .PHONY: build.go.testdata
 build.go.testdata:

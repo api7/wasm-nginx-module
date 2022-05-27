@@ -104,31 +104,6 @@ typedef struct {
 } ngx_wasm_wasmtime_host_api_t;
 
 """
-    elif vm == "wasmedge":
-        vm_def = """
-#define DEFINE_WASM_API(NAME, ARG_CHECK) \\
-    static WasmEdge_Result wasmedge_##NAME( \\
-        void *Data, \\
-        WasmEdge_MemoryInstanceContext *MemCxt, \\
-        const WasmEdge_Value *In, \\
-        WasmEdge_Value *Out \\
-    ) { \\
-        ARG_CHECK \\
-        Out[0] = WasmEdge_ValueGenI32(res); \\
-        return WasmEdge_Result_Success; \\
-    }
-#define DEFINE_WASM_NAME(NAME, ARG) \\
-    {ngx_string(#NAME), wasmedge_##NAME, ARG},
-
-
-typedef struct {
-    ngx_str_t                name;
-    WasmEdge_HostFunc_t      cb;
-    int8_t                   param_num;
-    enum WasmEdge_ValType    param_type[MAX_WASM_API_ARG];
-} ngx_wasm_wasmedge_host_api_t;
-
-"""
 
     for i in range(max_wasm_api_arg + 1):
         if i == 0:
@@ -143,8 +118,6 @@ typedef struct {
             param_s = ""
             if vm == "wasmtime":
                 kind = "WASM_I32"
-            else:
-                kind = "WasmEdge_ValType_I32"
             for j in range(1, i + 1):
                 if j % 5 == 1:
                     param_s += "    "
@@ -160,8 +133,6 @@ typedef struct {
             for j in range(i):
                 if vm == "wasmtime":
                     vm_def += "    int32_t p%d = args[%d].of.i32; \\\n" % (j, j)
-                elif vm == "wasmedge":
-                    vm_def += "    int32_t p%d = WasmEdge_ValueGetI32(In[%d]); \\\n" % (j, j)
             param_s = ", ".join('p' + str(j) for j in range(i))
             vm_def += "    int32_t res = NAME(%s);\n" % (param_s)
     return vm_def
@@ -249,17 +220,5 @@ DEFINE_WASM_API(%s,
             vm_header="#include <wasmtime.h>",
             vm_api_header_name="NGX_HTTP_WASM_API_WASMTIME_H",
             wasm_api_def=wasmtime_def,
-            max_wasm_api_arg=max_wasm_api_arg,
-        ))
-
-    wasmedge_def = predefined_macro("wasmedge")
-    wasmedge_def += api_def + "\n\nstatic ngx_wasm_wasmedge_host_api_t host_apis[] = {\n"
-    wasmedge_def += name_def
-    with open(os.path.join(src_dir, "ngx_http_wasm_api_wasmedge.h"), 'w') as f:
-        f.write(s.substitute(
-            header=header,
-            vm_header="#include <wasmedge/wasmedge.h>",
-            vm_api_header_name="NGX_HTTP_WASM_API_WASMEDGE_H",
-            wasm_api_def=wasmedge_def,
             max_wasm_api_arg=max_wasm_api_arg,
         ))
