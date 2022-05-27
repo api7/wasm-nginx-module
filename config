@@ -36,6 +36,26 @@ ngx_module_libs=" \
     -L$ngx_addon_dir/wasmtime-c-api/lib -lwasmtime \
 "
 
+if [ -d $ngx_addon_dir/wasmedge ]; then
+    # if wasmedge is installed
+    wasmedge_path=$ngx_addon_dir/wasmedge
+    ngx_module_srcs=" \
+        $ngx_module_srcs \
+        $ngx_addon_dir/src/vm/wasmedge.c \
+    "
+    ngx_module_incs=" \
+        $ngx_module_incs \
+        $wasmedge_path/include \
+    "
+    ngx_module_libs=" \
+        $ngx_module_libs \
+        -L$wasmedge_path/lib -lwasmedge_c \
+    "
+
+    echo "Build with WasmEdge enabled"
+    have=NGX_WASM_HAVE_WASMEDGE . auto/have
+fi
+
 . auto/module
 
 ngx_addon_name=$ngx_module_name
