@@ -25,11 +25,6 @@ ngx_wasm_vm_init(ngx_str_t *name)
 {
     if (ngx_strcmp(name->data, "wasmtime") == 0) {
         ngx_wasm_vm = &ngx_wasm_wasmtime_vm;
-
-#if (NGX_WASM_HAVE_WASMEDGE)
-    } else if (ngx_strcmp(name->data, "wasmedge") == 0) {
-        ngx_wasm_vm = &ngx_wasm_wasmedge_vm;
-#endif
     }
 
     if (ngx_wasm_vm == NULL) {
