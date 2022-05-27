@@ -56,10 +56,12 @@ jobs:
           sudo cpanm --notest Test::Nginx > build.log 2>&1 || (cat build.log && exit 1)
           git clone https://github.com/iresty/test-nginx.git test-nginx
 
-      - name: Install
+      - name: Install WasmEdge
+        if: matrix.vm == 'wasmedge'
         run: |
           ./install-wasmedge.sh
 
+      - name: Install
           wget https://raw.githubusercontent.com/api7/apisix-build-tools/master/build-apisix-base.sh
           chmod +x build-apisix-base.sh
           OR_PREFIX=$OPENRESTY_PREFIX CC="clang -fsanitize=address -fcolor-diagnostics -Qunused-arguments" \
