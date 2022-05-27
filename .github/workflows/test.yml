@@ -8,6 +8,12 @@ on:
 
 jobs:
   test:
+    strategy:
+      fail-fast: false
+      matrix:
+        vm:
+          - wasmedge
+          - wasmtime
     runs-on: "ubuntu-20.04"
     env:
       OPENRESTY_PREFIX: "/usr/local/openresty"
@@ -52,11 +58,13 @@ jobs:
 
       - name: Install
         run: |
+          ./install-wasmedge.sh
+
           wget https://raw.githubusercontent.com/api7/apisix-build-tools/master/build-apisix-base.sh
           chmod +x build-apisix-base.sh
           OR_PREFIX=$OPENRESTY_PREFIX CC="clang -fsanitize=address -fcolor-diagnostics -Qunused-arguments" \
               cc_opt="-Werror -fsanitize=undefined" \
-              ld_opt="-lubsan" \
+              ld_opt="-lubsan -Wl,-rpath,$OPENRESTY_PREFIX/wasmedge/lib" \
               ./build-apisix-base.sh latest
 
       - name: Script
@@ -64,4 +72,4 @@ jobs:
           sudo chown -R runner:root ~/.cache
           make build.all.testdata
           export PATH=$OPENRESTY_PREFIX/nginx/sbin:$PATH
-          WASM_VM=wasmtime prove -I. -Itest-nginx/lib -r t/
+          WASM_VM=${{ matrix.vm }} prove -I. -Itest-nginx/lib -r t/
