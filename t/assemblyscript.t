@@ -12,7 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-use t::WASM 'no_plan';
+use t::WASM;
+
+if ($ENV{"WASM_VM"} eq "wasmedge") {
+    # err msg: When linking module: "wasi_unstable" , function name: "proc_exit"
+    plan(skip_all => "wasmedge doesn't support wasi_unstable");
+} else {
+    plan('no_plan');
+}
 
 run_tests();
 
