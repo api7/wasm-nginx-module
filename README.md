@@ -35,11 +35,12 @@ export wasmtime_prefix=/path/to/wasm-nginx-module/wasmtime-c-api
 ```
 
 * Download WasmEdge with the `./install-wasmedge.sh`.
-Remember to add the `$HOME/.wasmedge/lib` to the library search path when you build Nginx, for instance,
+Remember to add the `wasmedge/lib` to the library search path when you build Nginx, for instance,
 
 ```
+export wasmedge_prefix=/path/to/wasm-nginx-module/wasmedge
 ./configure ... \
-    --with-ld-opt="-Wl,-rpath,${HOME}/.wasmedge/lib" \
+    --with-ld-opt="-Wl,-rpath,${wasmedge_prefix}/lib" \
 ```
 
 ## Directives
@@ -52,8 +53,8 @@ Remember to add the `$HOME/.wasmedge/lib` to the library search path when you bu
 
 **context:** *http*
 
-Select the WASM VM. Currently, only wasmtime and WasmEdge are supported.
-If the directive is not set, the WASM VM won't be enabled.
+Select the Wasm VM. Currently, only wasmtime and WasmEdge are supported.
+If the directive is not set, the Wasm VM won't be enabled.
 
 ## Methods
 
