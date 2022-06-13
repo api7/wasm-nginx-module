@@ -190,3 +190,50 @@ location /t {
 --- error_log
 failed to call function
 failed to run proxy_on_http_response_headers
+
+
+
+=== TEST 8: reuse plugin ctx id with freed http ctx
+--- config
+location /hit {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local ctx = package.loaded.ctx
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = wasm.load("plugin", "t/testdata/http_lifecycle/main.go.wasm")
+        local http = require "resty.http"
+        local uri = "http://127.0.0.1:" .. ngx.var.server_port
+                    .. "/hit"
+        for i = 1, 2 do
+            do
+                local ctx = assert(wasm.on_configure(plugin, '{"body":512}'))
+                package.loaded.ctx = ctx
+                local httpc = http.new()
+                local res, err = httpc:request_uri(uri)
+                if not res then
+                    ngx.log(ngx.ERR, err)
+                    return
+                end
+                package.loaded.ctx = nil
+            end
+            collectgarbage()
+        end
+    }
+}
+--- grep_error_log eval
+qr/(create|free) (plugin|http) context \d+/
+--- grep_error_log_out eval
+qr/create plugin context 1
+create http context 2
+free http context 2
+free plugin context 1
+create plugin context 1
+create http context 3
+free http context 3
+free plugin context 1
+/
