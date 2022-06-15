@@ -339,6 +339,10 @@ ngx_http_wasm_free_plugin_ctx(ngx_http_wasm_plugin_ctx_t *hwp_ctx)
     if (hwp_ctx->pool != NULL) {
         ngx_destroy_pool(hwp_ctx->pool);
         hwp_ctx->pool = NULL;
+
+        /* http_ctx destroyed in pool should not be referred in the queue */
+        ngx_queue_init(&hwp_ctx->occupied);
+        ngx_queue_init(&hwp_ctx->free);
     }
 
     ngx_log_error(NGX_LOG_INFO, log, 0, "free plugin context %d", ctx_id);
