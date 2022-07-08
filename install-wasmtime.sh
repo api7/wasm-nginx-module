@@ -25,7 +25,7 @@ else
     os="linux"
 fi
 ARCH=$arch
-VER=v0.37.0
+VER=v0.38.1
 wget https://github.com/bytecodealliance/wasmtime/releases/download/${VER}/wasmtime-${VER}-${ARCH}-${os}-c-api.tar.xz
 tar -xvf ./wasmtime-${VER}-${ARCH}-${os}-c-api.tar.xz > /dev/null
 if [ -d wasmtime-c-api ]; then
