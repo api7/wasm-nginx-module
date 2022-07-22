@@ -20,4 +20,4 @@ if echo "int main(void) {}" | gcc -o /dev/null -v -x c - &> /dev/stdout| grep co
     exit 0
 fi
 
-curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash -s -- -e none -p ./wasmedge -v 0.10.0-alpha.1
+curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash -s -- -e none -p ./wasmedge -v 0.10.0
