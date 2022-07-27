@@ -1,0 +1,2 @@
+*.t linguist-language=Text
+*.pm linguist-language=Perl
