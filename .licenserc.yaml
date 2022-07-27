@@ -19,6 +19,7 @@ header:
 
   paths-ignore:
     - '.gitignore'
+    - '.gitattributes'
     - 'LICENSE'
     - '.github/'
     # Exclude test files
