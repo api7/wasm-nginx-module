@@ -32,7 +32,8 @@ if [ -d wasmtime-c-api ]; then
     rm -rf wasmtime-c-api
 fi
 mv wasmtime-${VER}-${ARCH}-${os}-c-api wasmtime-c-api
-if echo "int main(void) {}" | gcc -o /dev/null -v -x c - &> /dev/stdout| grep collect | tr -s " " "\012" | grep musl; then
+if { echo "int main(void) {}" | gcc -o /dev/null -v -x c - &> /dev/stdout| grep collect | tr -s " " "\012" | grep musl; } \
+    || ( [[ -f /etc/redhat-release ]] && [[ "$arch" = "aarch64" ]] ); then
     # build from source code if the libc is musl
     git clone https://github.com/bytecodealliance/wasmtime -b ${VER} --depth 1 \
         && cd wasmtime \
