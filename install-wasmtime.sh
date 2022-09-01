@@ -35,8 +35,10 @@ mv wasmtime-${VER}-${ARCH}-${os}-c-api wasmtime-c-api
 if { echo "int main(void) {}" | gcc -o /dev/null -v -x c - &> /dev/stdout| grep collect | tr -s " " "\012" | grep musl; } \
     || ( [[ -f /etc/redhat-release ]] && [[ "$arch" = "aarch64" ]] ); then
     # build from source code if the libc is musl or under centos aarch64
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    source "$HOME/.cargo/env"
+    if ! command -v cargo > /dev/null; then
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        source "$HOME/.cargo/env"
+    fi
 
     git clone https://github.com/bytecodealliance/wasmtime -b ${VER} --depth 1 \
         && cd wasmtime \
