@@ -19,7 +19,7 @@ jobs:
           sudo luarocks install luacheck > build.log 2>&1 || (cat build.log && exit 1)
 
       - name: Setup Nodejs env
-        uses: actions/setup-node@v3.4.1
+        uses: actions/setup-node@v3.5.0
         with:
           node-version: '12'
 
