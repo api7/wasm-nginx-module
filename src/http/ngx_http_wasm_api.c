@@ -1388,7 +1388,7 @@ ngx_http_wasm_http_call_resp_get_header(ngx_http_request_t *r, char *key,  int32
     hdr = ctx->call_resp_headers;
 
     for (i = 0; i < ctx->call_resp_n_header; i++) {
-        if ((size_t) key_size != hdr[i].key.len) {
+        if (key_size != hdr[i].key.len) {
             continue;
         }
 
