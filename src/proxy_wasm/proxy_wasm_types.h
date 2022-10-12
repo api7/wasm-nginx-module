@@ -19,11 +19,12 @@
 
 
 #include <ngx_core.h>
+#include <ngx_http_lua_api.h>
 
 
 typedef struct {
-    ngx_str_t       key;
-    ngx_str_t       value;
+    ngx_http_lua_ffi_str_t  key;
+    ngx_http_lua_ffi_str_t  value;
 } proxy_wasm_table_elt_t;
 
 
