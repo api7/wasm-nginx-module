@@ -978,9 +978,10 @@ ngx_http_wasm_req_get_headers(ngx_http_request_t *r, int32_t addr, int32_t size_
         ngx_memcpy(key, headers[i].key.data, headers[i].key.len);
         ngx_memcpy(val, headers[i].value.data, headers[i].value.len);
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "wasm request header: \"%V: %V\"",
-                       &headers[i].key, &headers[i].value);
+        ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "wasm request header: \"%*s: %*s\"",
+                       headers[i].key.len, headers[i].key.data,
+                       headers[i].value.len, headers[i].value.data);
     }
 
     /* get pseudo headers :path, :method, :scheme */
@@ -1387,7 +1388,7 @@ ngx_http_wasm_http_call_resp_get_header(ngx_http_request_t *r, char *key,  int32
     hdr = ctx->call_resp_headers;
 
     for (i = 0; i < ctx->call_resp_n_header; i++) {
-        if ((size_t) key_size != hdr[i].key.len) {
+        if (key_size != hdr[i].key.len) {
             continue;
         }
 

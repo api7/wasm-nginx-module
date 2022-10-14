@@ -38,8 +38,13 @@ typedef struct {
 } ngx_str_t;
 
 typedef struct {
-    ngx_str_t   key;
-    ngx_str_t   value;
+    int         len;
+    u_char     *data;
+} ngx_http_lua_ffi_str_t;
+
+typedef struct {
+    ngx_http_lua_ffi_str_t  key;
+    ngx_http_lua_ffi_str_t  value;
 } proxy_wasm_table_elt_t;
 
 void *ngx_http_wasm_load_plugin(const char *name, size_t name_len, const char *code, size_t size);
