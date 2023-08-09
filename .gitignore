@@ -12,3 +12,4 @@ t/servroot
 node_modules/
 t/testdata/rust/*/target
 utils/reindex
+.idea/
