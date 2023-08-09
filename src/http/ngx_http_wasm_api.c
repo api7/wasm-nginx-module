@@ -1789,3 +1789,28 @@ proxy_call_foreign_function(int32_t fn_data, int32_t fn_size,
 {
     return PROXY_RESULT_UNIMPLEMENTED;
 }
+
+int32_t
+proxy_define_metric(int32_t type, int32_t name_data, int32_t name_size,
+                    int32_t result)
+{
+    return PROXY_RESULT_UNIMPLEMENTED;
+}
+
+int32_t
+proxy_increment_metric(int32_t metric_id, int64_t offset)
+{
+    return PROXY_RESULT_UNIMPLEMENTED;
+}
+
+int32_t
+proxy_record_metric(int32_t metric_id, int64_t value)
+{
+    return PROXY_RESULT_UNIMPLEMENTED;
+}
+
+int32_t
+proxy_get_metric(int32_t metric_id, int64_t result)
+{
+    return PROXY_RESULT_UNIMPLEMENTED;
+}

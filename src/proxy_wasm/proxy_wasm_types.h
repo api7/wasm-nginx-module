@@ -59,6 +59,14 @@ typedef enum {
 
 
 typedef enum {
+  Counter = 0,
+  Gauge = 1,
+  Histogram = 2,
+  Max = 2,
+} metric_type_t;
+
+
+typedef enum {
     PROXY_LOG_TRACE,
     PROXY_LOG_DEBUG,
     PROXY_LOG_INFO,

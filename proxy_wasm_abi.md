@@ -345,6 +345,40 @@ We only implement `proxy_send_local_response` as an alias because proxy-wasm-go-
 * returns:
   - `i32 (proxy_result_t) call_result`
 
-Dispatch a HTTP call to upstream (`upstream_name_data`, `upstream_name_size`). Once the response is
+Dispatch an HTTP call to upstream (`upstream_name_data`, `upstream_name_size`). Once the response is
 returned to the host, `proxy_on_http_call_response` will be called with a unique call identifier
 (`return_callout_id`).
+
+## metric extensions
+
+### `proxy_define_metric`
+
+* params:
+  - `i32 (proxy_metric_type_t) metric_type`
+  - `i32 (const char*) name_ptr`
+  - `i32 (size_t) name_size`
+  - `i32 (uint32_t*) metric_id`
+* returns:
+  - `i32 (proxy_result_t) call_result`
+
+### `proxy_increment_metric`
+
+* params:
+ - `i32 (uint32_t) metric_id`
+ - `i64 (int64_t) offset`
+* returns:
+  - `i32 (proxy_result_t) call_result`
+
+### `proxy_record_metric`
+
+* Params:
+ - `i32 (uint32_t) metric_id`
+ - `i64 (uint64_t) value`
+* returns:
+  - `i32 (proxy_result_t) call_result`
+
+### `proxy_get_metric`
+
+* Params:
+ - `i32 (uint32_t) metric_id`
+ - `i64 (uint64_t*) result`

@@ -219,6 +219,14 @@ typedef struct {
     int32_t p11 = WasmEdge_ValueGetI32(In[11]); \
     int32_t res = NAME(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);
 
+#define DEFINE_WASM_NAME_ARG_I32_I64 \
+    2, { \
+    WasmEdge_ValType_I32, WasmEdge_ValType_I64, }
+#define DEFINE_WASM_API_ARG_CHECK_I32_I64(NAME) \
+    int32_t p0 = WasmEdge_ValueGetI32(In[0]); \
+    int32_t p1 = WasmEdge_ValueGetI64(In[1]); \
+    int32_t res = NAME(p0, p1);
+
 DEFINE_WASM_API(proxy_set_effective_context,
                 DEFINE_WASM_API_ARG_CHECK_I32_1(proxy_set_effective_context))
 DEFINE_WASM_API(proxy_get_property,
@@ -293,6 +301,14 @@ DEFINE_WASM_API(proxy_done,
                 DEFINE_WASM_API_ARG_CHECK_VOID(proxy_done))
 DEFINE_WASM_API(proxy_call_foreign_function,
                 DEFINE_WASM_API_ARG_CHECK_I32_6(proxy_call_foreign_function))
+DEFINE_WASM_API(proxy_define_metric,
+                DEFINE_WASM_API_ARG_CHECK_I32_4(proxy_define_metric))
+DEFINE_WASM_API(proxy_increment_metric,
+                DEFINE_WASM_API_ARG_CHECK_I32_I64(proxy_increment_metric))
+DEFINE_WASM_API(proxy_record_metric,
+                DEFINE_WASM_API_ARG_CHECK_I32_I64(proxy_record_metric))
+DEFINE_WASM_API(proxy_get_metric,
+                DEFINE_WASM_API_ARG_CHECK_I32_I64(proxy_get_metric))
 
 static ngx_wasm_wasmedge_host_api_t host_apis[] = {
     DEFINE_WASM_NAME(proxy_set_effective_context, DEFINE_WASM_NAME_ARG_I32_1)
@@ -332,6 +348,10 @@ static ngx_wasm_wasmedge_host_api_t host_apis[] = {
     DEFINE_WASM_NAME(proxy_get_status, DEFINE_WASM_NAME_ARG_I32_3)
     DEFINE_WASM_NAME(proxy_done, DEFINE_WASM_NAME_ARG_VOID)
     DEFINE_WASM_NAME(proxy_call_foreign_function, DEFINE_WASM_NAME_ARG_I32_6)
+    DEFINE_WASM_NAME(proxy_define_metric, DEFINE_WASM_NAME_ARG_I32_4)
+    DEFINE_WASM_NAME(proxy_increment_metric, DEFINE_WASM_NAME_ARG_I32_I64)
+    DEFINE_WASM_NAME(proxy_record_metric, DEFINE_WASM_NAME_ARG_I32_I64)
+    DEFINE_WASM_NAME(proxy_get_metric, DEFINE_WASM_NAME_ARG_I32_I64)
     { ngx_null_string, NULL, 0, {} }
 };
 
