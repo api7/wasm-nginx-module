@@ -129,9 +129,6 @@ typedef struct {
 
 """
 
-
-
-
 def predefined_macro(vm):
     vm_def = generate_wasm_runtime_struct(vm)
 
@@ -192,9 +189,6 @@ def predefined_macro(vm):
 '''
 
     return vm_def
-
-
-
 
 def get_host_apis(src_dir):
     apis = []
