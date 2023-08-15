@@ -14,6 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3.4.0
       - name: Check License Header
-        uses: apache/skywalking-eyes@v0.4.0
+        uses: apache/skywalking-eyes@v0.5.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
