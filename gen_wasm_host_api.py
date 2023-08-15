@@ -184,7 +184,7 @@ def predefined_macro(vm):
     WasmEdge_ValType_I32, WasmEdge_ValType_I64, }
 #define DEFINE_WASM_API_ARG_CHECK_I32_I64(NAME) \
     int32_t p0 = WasmEdge_ValueGetI32(In[0]); \
-    int32_t p1 = WasmEdge_ValueGetI64(In[1]); \
+    int64_t p1 = WasmEdge_ValueGetI64(In[1]); \
     int32_t res = NAME(p0, p1);
 '''
 
