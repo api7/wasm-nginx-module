@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
+
 package main
 
 import (
@@ -146,6 +146,14 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 			return types.ActionContinue
 		}
 		proxywasm.LogWarnf("get request scheme: %v", res)
+
+	case "req_hdr_get_authority":
+		authority, err := proxywasm.GetHttpRequestHeader(":authority")
+		if err != nil {
+			proxywasm.LogErrorf("error get request authority: %v", err)
+			return types.ActionContinue
+		}
+		proxywasm.LogWarnf("get request authority: %v", authority)
 
 	case "req_pseduo_del":
 		proxywasm.RemoveHttpRequestHeader(":method")

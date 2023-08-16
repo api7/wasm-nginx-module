@@ -71,6 +71,7 @@ static ngx_str_t *ngx_http_wasm_get_path(ngx_http_request_t *r);
 static ngx_str_t *ngx_http_wasm_get_method(ngx_http_request_t *r);
 static ngx_str_t *ngx_http_wasm_get_scheme(ngx_http_request_t *r);
 static ngx_str_t *ngx_http_wasm_get_status(ngx_http_request_t *r);
+static ngx_str_t *ngx_http_wasm_get_authority(ngx_http_request_t *r);
 static ngx_str_t *ngx_http_wasm_get_pseudo_header(ngx_http_request_t *r,
                                                   u_char *key_data, size_t key_size, int ty);
 static ngx_str_t *ngx_http_wasm_get_pseudo_req_header(ngx_http_request_t *r,
@@ -114,6 +115,7 @@ static ngx_http_wasm_pseudo_header_t wasm_pseudo_req_header_static_table[] = {
     {ngx_string(":scheme"), PROXY_WASM_REQUEST_HEADER_SCHEME, ngx_http_wasm_get_scheme},
     {ngx_string(":path"),   PROXY_WASM_REQUEST_HEADER_PATH, ngx_http_wasm_get_path},
     {ngx_string(":method"), PROXY_WASM_REQUEST_HEADER_METHOD, ngx_http_wasm_get_method},
+    {ngx_string(":authority"), PROXY_WASM_REQUEST_HEADER_AUTHORITY, ngx_http_wasm_get_authority},
 };
 
 static ngx_http_wasm_pseudo_header_t wasm_pseudo_resp_header_static_table[] = {
@@ -823,6 +825,13 @@ ngx_http_wasm_get_path(ngx_http_request_t *r)
     return &r->unparsed_uri;
 }
 
+// https://datatracker.ietf.org/doc/html/rfc3986#section-3.2
+// TODO: need bugfix
+static ngx_str_t *
+ngx_http_wasm_get_authority(ngx_http_request_t *r)
+{
+    return &r->headers_in.host->value;
+}
 
 static ngx_str_t *
 ngx_http_wasm_get_method(ngx_http_request_t *r)

@@ -74,7 +74,22 @@ error status returned by host: not found
 
 
 
-=== TEST 4: get header, ignoring case
+=== TEST 4: get http request authority
+--- config
+location /t {
+    content_by_lua_block {
+        local wasm = require("resty.proxy-wasm")
+        local plugin = assert(wasm.load("plugin", "t/testdata/http_header/main.go.wasm"))
+        local ctx = assert(wasm.on_configure(plugin, 'req_hdr_get_authority'))
+        assert(wasm.on_http_request_headers(ctx))
+    }
+}
+--- error_log
+get request authority: localhost
+
+
+
+=== TEST 5: get header, ignoring case
 --- config
 location /t {
     content_by_lua_block {
@@ -93,7 +108,7 @@ get request header: foo,
 
 
 
-=== TEST 5: get all header
+=== TEST 6: get all header
 --- config
 location /t {
     content_by_lua_block {
@@ -114,10 +129,11 @@ get request header: x-api foo
 get request header: :scheme http
 get request header: :path /t
 get request header: :method GET
+get request header: :authority localhost
 
 
 
-=== TEST 6: get all header, repeated headers
+=== TEST 7: get all header, repeated headers
 --- config
 location /t {
     content_by_lua_block {
@@ -140,10 +156,11 @@ get request header: x-api bar
 get request header: :scheme http
 get request header: :path /t
 get request header: :method GET
+get request header: :authority localhost
 
 
 
-=== TEST 7: set header
+=== TEST 8: set header
 --- config
 location /t {
     access_by_lua_block {
@@ -163,7 +180,7 @@ bar
 
 
 
-=== TEST 8: set header, missing
+=== TEST 9: set header, missing
 --- config
 location /t {
     access_by_lua_block {
@@ -181,7 +198,7 @@ bar
 
 
 
-=== TEST 9: add header
+=== TEST 10: add header
 --- config
 location /t {
     access_by_lua_block {
@@ -201,7 +218,7 @@ foobar
 
 
 
-=== TEST 10: add header, missing
+=== TEST 11: add header, missing
 --- config
 location /t {
     access_by_lua_block {
@@ -219,7 +236,7 @@ bar
 
 
 
-=== TEST 11: remove header
+=== TEST 12: remove header
 --- config
 location /t {
     access_by_lua_block {
@@ -239,7 +256,7 @@ nil
 
 
 
-=== TEST 12: remove header, missing
+=== TEST 13: remove header, missing
 --- config
 location /t {
     access_by_lua_block {
@@ -257,7 +274,7 @@ nil
 
 
 
-=== TEST 13: remove header, all of it
+=== TEST 14: remove header, all of it
 --- config
 location /t {
     access_by_lua_block {
@@ -278,7 +295,7 @@ nil
 
 
 
-=== TEST 14: get path (not args)
+=== TEST 15: get path (not args)
 --- config
 location /t {
     content_by_lua_block {
@@ -295,7 +312,7 @@ get request path: /t,
 
 
 
-=== TEST 15: get path (args)
+=== TEST 16: get path (args)
 --- config
 location /t {
     content_by_lua_block {
@@ -314,7 +331,7 @@ get request path: /t?q=hello&a=world,
 
 
 
-=== TEST 16: get method (GET)
+=== TEST 17: get method (GET)
 --- config
 location /t {
     content_by_lua_block {
@@ -331,7 +348,7 @@ get request method: GET,
 
 
 
-=== TEST 17: get method (POST)
+=== TEST 18: get method (POST)
 --- config
 location /t {
     content_by_lua_block {
@@ -350,7 +367,7 @@ get request method: POST,
 
 
 
-=== TEST 18: get method (PUT)
+=== TEST 19: get method (PUT)
 --- config
 location /t {
     content_by_lua_block {
@@ -369,7 +386,7 @@ get request method: PUT,
 
 
 
-=== TEST 19: get method (DELETE)
+=== TEST 20: get method (DELETE)
 --- config
 location /t {
     content_by_lua_block {
@@ -388,7 +405,7 @@ get request method: DELETE,
 
 
 
-=== TEST 20: get schema(http2)
+=== TEST 21: get schema(http2)
 --- http2
 --- config
 location /t {
@@ -406,7 +423,7 @@ get request scheme: http,
 
 
 
-=== TEST 21: get header, abnormal
+=== TEST 22: get header, abnormal
 --- config
 location /t {
     content_by_lua_block {
@@ -430,7 +447,7 @@ error status returned by host: not found
 
 
 
-=== TEST 22: set header, abnormal
+=== TEST 23: set header, abnormal
 --- config
 location /t {
     content_by_lua_block {
@@ -451,7 +468,7 @@ location /t {
 
 
 
-=== TEST 23: get schema(http)
+=== TEST 24: get schema(http)
 --- config
 location /t {
     content_by_lua_block {
@@ -468,7 +485,7 @@ get request scheme: http,
 
 
 
-=== TEST 24: delete pseduo headers
+=== TEST 25: delete pseduo headers
 --- config
 location /t {
     content_by_lua_block {
@@ -489,7 +506,7 @@ can't remove pseudo header
 
 
 
-=== TEST 25: set path, abnormal
+=== TEST 26: set path, abnormal
 --- config
 location /t {
     content_by_lua_block {
@@ -518,7 +535,7 @@ failed to set request header :path: invalid char
 
 
 
-=== TEST 26: set path
+=== TEST 27: set path
 --- config
 location /t {
     content_by_lua_block {
@@ -549,7 +566,7 @@ a?a=c
 
 
 
-=== TEST 27: set method, abnormal
+=== TEST 28: set method, abnormal
 --- config
 location /t {
     content_by_lua_block {
@@ -580,7 +597,7 @@ GET
 
 
 
-=== TEST 28: set method
+=== TEST 29: set method
 --- config
 location /t {
     content_by_lua_block {
