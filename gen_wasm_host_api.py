@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2022 Shenzhen ZhiLiu Technology Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,8 +18,8 @@ import re
 import sys
 from string import Template
 
+MAX_WASM_API_ARG = 12
 
-max_wasm_api_arg = 12
 header = """/*
  * Copyright 2022 Shenzhen ZhiLiu Technology Co., Ltd.
  *
@@ -74,10 +74,9 @@ $wasm_api_def
 #endif
 """
 
-
-def predefined_macro(vm):
+def generate_wasm_runtime_struct(vm):
     if vm == "wasmtime":
-        vm_def = """
+        return """
 #define DEFINE_WASM_API(NAME, ARG_CHECK) \\
     static wasm_trap_t* wasmtime_##NAME( \\
         void *env, \\
@@ -105,7 +104,7 @@ typedef struct {
 
 """
     elif vm == "wasmedge":
-        vm_def = """
+        return """
 #define DEFINE_WASM_API(NAME, ARG_CHECK) \\
     static WasmEdge_Result wasmedge_##NAME( \\
         void *Data, \\
@@ -130,7 +129,10 @@ typedef struct {
 
 """
 
-    for i in range(max_wasm_api_arg + 1):
+def predefined_macro(vm):
+    vm_def = generate_wasm_runtime_struct(vm)
+
+    for i in range(MAX_WASM_API_ARG + 1):
         if i == 0:
             void_def = """
 #define DEFINE_WASM_NAME_ARG_VOID \\
@@ -164,8 +166,29 @@ typedef struct {
                     vm_def += "    int32_t p%d = WasmEdge_ValueGetI32(In[%d]); \\\n" % (j, j)
             param_s = ", ".join('p' + str(j) for j in range(i))
             vm_def += "    int32_t res = NAME(%s);\n" % (param_s)
-    return vm_def
 
+    if vm == "wasmtime":
+        vm_def += r'''
+#define DEFINE_WASM_NAME_ARG_I32_I64 \
+    2, { \
+    WASM_I32, WASM_I64, }
+#define DEFINE_WASM_API_ARG_CHECK_I32_I64(NAME) \
+    int32_t p0 = args[0].of.i32; \
+    int64_t p1 = args[1].of.i64; \
+    int32_t res = NAME(p0, p1);
+'''
+    elif vm == "wasmedge":
+        vm_def += r'''
+#define DEFINE_WASM_NAME_ARG_I32_I64 \
+    2, { \
+    WasmEdge_ValType_I32, WasmEdge_ValType_I64, }
+#define DEFINE_WASM_API_ARG_CHECK_I32_I64(NAME) \
+    int32_t p0 = WasmEdge_ValueGetI32(In[0]); \
+    int64_t p1 = WasmEdge_ValueGetI64(In[1]); \
+    int32_t res = NAME(p0, p1);
+'''
+
+    return vm_def
 
 def get_host_apis(src_dir):
     apis = []
@@ -180,24 +203,25 @@ def get_host_apis(src_dir):
                 name = m.group(1)
             elif line[0] == '{' and matching:
                 matching = False
-                n_param = len(api.split(','))
+                api_list = api.split(',')
+                n_param = len(api_list)
                 if "(void)" in api:
                     n_param -= 1
                 apis.append({
                     "name": name,
-                    "n_param": n_param
+                    "n_param": n_param,
+                    "raw_func": api
                 })
                 api = ""
             if matching:
                 api += line.rstrip()
     return apis
 
-
 if __name__ == '__main__':
     host_api_def = ""
     api_def = ""
     name_def = ""
-    for i in range(max_wasm_api_arg + 1):
+    for i in range(MAX_WASM_API_ARG + 1):
         if i == 0:
             host_api_def += "#define DEFINE_WASM_API_ARG_VOID void\n"
         else:
@@ -212,6 +236,9 @@ if __name__ == '__main__':
                     param_s += ", "
                 param_s += "int32_t"
             host_api_def += "#define DEFINE_WASM_API_ARG_%s%s\n" % (param_suffix, param_s)
+
+    host_api_def += """#define DEFINE_WASM_API_ARG_I32_I64 \\\n    int32_t, int64_t"""
+
     host_api_def += "\n\n"
 
     src_dir = sys.argv[1]
@@ -222,6 +249,8 @@ if __name__ == '__main__':
         n_param = api["n_param"]
         if n_param == 0:
             param_suffix = "VOID"
+        elif n_param == 2 and "int64_t" in api["raw_func"]:
+            param_suffix = "I32_I64"
         else:
             param_suffix = "I32_%d" % n_param
 
@@ -249,7 +278,7 @@ DEFINE_WASM_API(%s,
             vm_header="#include <wasmtime.h>",
             vm_api_header_name="NGX_HTTP_WASM_API_WASMTIME_H",
             wasm_api_def=wasmtime_def,
-            max_wasm_api_arg=max_wasm_api_arg,
+            max_wasm_api_arg=MAX_WASM_API_ARG,
         ))
 
     wasmedge_def = predefined_macro("wasmedge")
@@ -261,5 +290,5 @@ DEFINE_WASM_API(%s,
             vm_header="#include <wasmedge/wasmedge.h>",
             vm_api_header_name="NGX_HTTP_WASM_API_WASMEDGE_H",
             wasm_api_def=wasmedge_def,
-            max_wasm_api_arg=max_wasm_api_arg,
+            max_wasm_api_arg=MAX_WASM_API_ARG,
         ))

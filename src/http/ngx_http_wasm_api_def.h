@@ -52,7 +52,8 @@
 #define DEFINE_WASM_API_ARG_I32_12 \
     int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, \
     int32_t, int32_t, int32_t, int32_t
-
+#define DEFINE_WASM_API_ARG_I32_I64 \
+    int32_t, int64_t
 
 int32_t proxy_set_effective_context(DEFINE_WASM_API_ARG_I32_1);
 int32_t proxy_get_property(DEFINE_WASM_API_ARG_I32_4);
@@ -91,6 +92,10 @@ int32_t proxy_grpc_close(DEFINE_WASM_API_ARG_I32_1);
 int32_t proxy_get_status(DEFINE_WASM_API_ARG_I32_3);
 int32_t proxy_done(DEFINE_WASM_API_ARG_VOID);
 int32_t proxy_call_foreign_function(DEFINE_WASM_API_ARG_I32_6);
+int32_t proxy_define_metric(DEFINE_WASM_API_ARG_I32_4);
+int32_t proxy_increment_metric(DEFINE_WASM_API_ARG_I32_I64);
+int32_t proxy_record_metric(DEFINE_WASM_API_ARG_I32_I64);
+int32_t proxy_get_metric(DEFINE_WASM_API_ARG_I32_I64);
 
 
 
