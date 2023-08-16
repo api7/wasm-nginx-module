@@ -830,8 +830,7 @@ ngx_http_wasm_get_path(ngx_http_request_t *r)
 static ngx_str_t *
 ngx_http_wasm_get_authority(ngx_http_request_t *r)
 {
-    static ngx_str_t localhost = ngx_string("localhost_guohao");
-    return &localhost;
+    return &r->headers_in.host->value;
 }
 
 static ngx_str_t *
