@@ -19,9 +19,9 @@
 #ifndef NGX_HTTP_WASM_API_WASMTIME_H
 #define NGX_HTTP_WASM_API_WASMTIME_H
 
+
 #include <ngx_config.h>
 #include <ngx_core.h>
-
 #include <wasm.h>
 #include <wasmtime.h>
 #include "proxy_wasm/proxy_wasm_types.h"
