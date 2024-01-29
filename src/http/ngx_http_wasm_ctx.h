@@ -17,7 +17,7 @@
 #ifndef NGX_HTTP_WASM_CTX_H
 #define NGX_HTTP_WASM_CTX_H
 
-
+#include <ngx_config.h>
 #include <ngx_core.h>
 #include "ngx_http_wasm_state.h"
 #include "proxy_wasm/proxy_wasm_types.h"
