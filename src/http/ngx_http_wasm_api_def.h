@@ -19,7 +19,7 @@
 #ifndef NGX_HTTP_WASM_API_DEF_H
 #define NGX_HTTP_WASM_API_DEF_H
 
-
+#include <ngx_config.h>
 #include <ngx_core.h>
 
 
