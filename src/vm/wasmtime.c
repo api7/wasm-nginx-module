@@ -14,6 +14,9 @@
  * limitations under the License.
  *
  */
+
+#include <ngx_config.h>
+#include <ngx_core.h>
 #include <wasi.h>
 #include <wasm.h>
 #include <wasmtime.h>
