@@ -16,8 +16,10 @@
  */
 #ifndef PROXY_WASM_MAP_H
 #define PROXY_WASM_MAP_H
-#include <stdbool.h>
+
+#include <ngx_config.h>
 #include <ngx_core.h>
+#include <stdbool.h>
 
 
 typedef enum {

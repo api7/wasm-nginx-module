@@ -18,8 +18,9 @@
 #define VM_H
 
 
-#include <stdbool.h>
+#include <ngx_config.h>
 #include <ngx_core.h>
+#include <stdbool.h>
 
 
 #define NGX_WASM_PARAM_VOID                 1

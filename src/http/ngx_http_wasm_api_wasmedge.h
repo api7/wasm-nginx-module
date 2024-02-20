@@ -20,9 +20,10 @@
 #define NGX_HTTP_WASM_API_WASMEDGE_H
 
 
+#include <ngx_config.h>
+#include <ngx_core.h>
 #include <wasm.h>
 #include <wasmedge/wasmedge.h>
-#include <ngx_core.h>
 #include "proxy_wasm/proxy_wasm_types.h"
 #include "http/ngx_http_wasm_api_def.h"
 

@@ -43,7 +43,7 @@ $header
 #ifndef NGX_HTTP_WASM_API_DEF_H
 #define NGX_HTTP_WASM_API_DEF_H
 
-
+#include <ngx_config.h>
 #include <ngx_core.h>
 
 
@@ -59,9 +59,10 @@ $header
 #define $vm_api_header_name
 
 
+#include <ngx_config.h>
+#include <ngx_core.h>
 #include <wasm.h>
 $vm_header
-#include <ngx_core.h>
 #include "proxy_wasm/proxy_wasm_types.h"
 #include "http/ngx_http_wasm_api_def.h"
 

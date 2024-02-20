@@ -17,7 +17,7 @@
 #ifndef NGX_HTTP_WASM_MODULE_H
 #define NGX_HTTP_WASM_MODULE_H
 
-
+#include <ngx_config.h>
 #include <ngx_core.h>
 
 

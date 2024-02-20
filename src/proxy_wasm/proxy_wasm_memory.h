@@ -16,6 +16,7 @@
  */
 #ifndef PROXY_WASM_MEMORY_H
 #define PROXY_WASM_MEMORY_H
+#include <ngx_config.h>
 #include <ngx_core.h>
 
 

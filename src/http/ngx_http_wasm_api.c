@@ -15,6 +15,11 @@
  *
  */
 #define _GNU_SOURCE /* for RTLD_DEFAULT */
+
+#include <ngx_config.h>
+#include <ngx_core.h>
+
+
 #include <dlfcn.h>
 #include "vm/vm.h"
 #include "ngx_http_wasm_api.h"
